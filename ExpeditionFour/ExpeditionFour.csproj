@@ -56,9 +56,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CreateTeam\CombatPatches.cs" />
-    <Compile Include="CreateTeam\CreateTeamLogic.cs" />
+    <Compile Include="LoadoutManager\FourPersonPartyLogic.cs" />
     <Compile Include="CreateTeam\ManagerPatches.cs" />
     <Compile Include="CreateTeam\PanelPatches.cs" />
+    <Compile Include="LoadoutManager\LoadoutController.cs" />
+    <Compile Include="LoadoutManager\LoadoutPatches.cs" />
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
     <Compile Include="MyPlugin.cs" />

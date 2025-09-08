@@ -10,8 +10,33 @@ public static class ExpeditionMainPanelNew_OnShow_SetupPatch
     {
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>()
                     ?? __instance.gameObject.AddComponent<FourPersonPartyLogic>();
-
         logic.MaxPartySize = FourPersonConfig.MaxPartySize;
+
+        // --- Correctly Synchronize Party Members ---
+        FPELog.Info("OnShow Postfix: Synchronizing PartyMember list...");
+        var tr = Traverse.Create(__instance);
+        int partyId = tr.Field("m_partyId").GetValue<int>();
+        var party = ExplorationManager.Instance.GetParty(partyId);
+
+        if (party != null)
+        {
+            // First, ensure the game has enough PartyMember components attached.
+            int currentMembers = party.GetComponents<PartyMember>().Length;
+            for (int i = currentMembers; i < logic.MaxPartySize; i++)
+            {
+                ExplorationManager.Instance.AddMemberToParty(partyId);
+            }
+
+            // Now, get ALL PartyMember components from the party object. This is our source of truth.
+            logic.AllPartyMembers.Clear();
+            logic.AllPartyMembers.AddRange(party.GetComponents<PartyMember>());
+            FPELog.Info($"Synchronization complete. Found {logic.AllPartyMembers.Count} PartyMember components.");
+        }
+        else
+        {
+            FPELog.Warn("Could not find ExplorationParty object to synchronize members!");
+        }
+
 
         if (!logic.isInitialized)
         {
@@ -22,11 +47,9 @@ public static class ExpeditionMainPanelNew_OnShow_SetupPatch
                 logic.AllMemberAvatars.Add(setup.memberAvatar);
                 logic.AllMemberAvatars.Add(setup.memberAvatar2);
                 logic.isInitialized = true;
-                FPELog.Info("Avatar setup complete: Using 2 vanilla slots for all members.");
+                FPELog.Info("Avatar UI initialized: Using 2 vanilla slots.");
             }
         }
-
-        SetupPartyMembers(__instance, logic);
 
         logic.ResetState();
         var elig = __instance.eligiblePeople;
@@ -34,27 +57,8 @@ public static class ExpeditionMainPanelNew_OnShow_SetupPatch
 
         __instance.partySetupScript?.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
     }
-
-    private static void SetupPartyMembers(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
-    {
-        var tr = Traverse.Create(panel);
-        int partyId = tr.Field("m_partyId").GetValue<int>();
-
-        while (logic.AllPartyMembers.Count < logic.MaxPartySize)
-        {
-            var extra = ExplorationManager.Instance.AddMemberToParty(partyId);
-            if (extra != null)
-            {
-                logic.AllPartyMembers.Add(extra);
-            }
-            else
-            {
-                FPELog.Warn($"Failed to add PartyMember component #{logic.AllPartyMembers.Count + 1}");
-                break;
-            }
-        }
-    }
 }
+
 
 // This is the key fix. We use a POSTFIX to correct the UI after vanilla runs.
 [HarmonyPatch(typeof(ExpeditionPartySetup), "UpdatePage")]
