@@ -81,107 +81,16 @@ public static class ExpeditionMainPanelNew_OnShow_SetupPatch
         var setup = panel.partySetupScript;
         if (setup == null) return;
 
-        // Ensure our storage
+        // We no longer clone. We just get references to the two vanilla avatar slots.
         if (logic.AllMemberAvatars == null)
             logic.AllMemberAvatars = new List<ExpeditionPartySetup.MemberAvatar>();
 
-        // Two anchor avatars from the vanilla UI
-        var av1 = setup.memberAvatar;   // anchor A (left)
-        var av2 = setup.memberAvatar2;  // anchor B (right)
+        logic.AllMemberAvatars.Clear();
+        logic.AllMemberAvatars.Add(setup.memberAvatar);   // Slot 0 in our list
+        logic.AllMemberAvatars.Add(setup.memberAvatar2);  // Slot 1 in our list
 
-        if (av1 == null || av2 == null) return;
-
-        // Anchor positions
-        var bg1 = av1.background != null ? av1.background.transform : null;
-        var bg2 = av2.background != null ? av2.background.transform : null;
-        if (bg1 == null || bg2 == null) return;
-
-        // Parent to place new clones under (same as originals)
-        var parent = bg1.parent != null ? bg1.parent : setup.transform;
-
-        // Ensure list size by creating/cloning as needed
-        // Slot 0 and 1 are the originals
-        var slotsNeeded = Mathf.Max(2, logic.MaxPartySize);
-
-        // Seed the list with the two anchors at indices 0 and 1
-        if (logic.AllMemberAvatars.Count == 0)
-        {
-            logic.AllMemberAvatars.Add(av1);
-            logic.AllMemberAvatars.Add(av2);
-        }
-        else
-        {
-            // Make sure index 0/1 always reference the real anchors
-            if (logic.AllMemberAvatars.Count > 0) logic.AllMemberAvatars[0] = av1;
-            else logic.AllMemberAvatars.Add(av1);
-
-            if (logic.AllMemberAvatars.Count > 1) logic.AllMemberAvatars[1] = av2;
-            else logic.AllMemberAvatars.Add(av2);
-        }
-
-        // Create clones for indices >= 2 if missing
-        for (int i = 2; i < slotsNeeded; i++)
-        {
-            if (i >= logic.AllMemberAvatars.Count || logic.AllMemberAvatars[i] == null)
-            {
-                var clone = UICloneUtil.CloneAvatar(av2, parent);
-                // Optional clearer names
-                if (clone.background != null)
-                    clone.background.gameObject.name = $"MemberAvatar{i + 1}_BG";
-                if (clone.polaroid != null)
-                    clone.polaroid.gameObject.name = $"MemberAvatar{i + 1}_Polaroid";
-                if (clone.avatar != null)
-                    clone.avatar.gameObject.name = $"MemberAvatar{i + 1}_Avatar";
-                if (clone.name != null)
-                    clone.name.gameObject.name = $"MemberAvatar{i + 1}_Name";
-
-                if (i < logic.AllMemberAvatars.Count)
-                    logic.AllMemberAvatars[i] = clone;
-                else
-                    logic.AllMemberAvatars.Add(clone);
-            }
-        }
-
-        // The positions of the first two avatars are fixed, as they are the vanilla objects.
-        // We only need to reposition the new clones we created.
-        Vector3 posB = bg2.localPosition; // Position of the second avatar
-
-        for (int i = 2; i < slotsNeeded; i++)
-        {
-            var avatarToMove = logic.AllMemberAvatars[i];
-            if (avatarToMove == null) continue;
-
-            // Calculate the target position: start at the second avatar's position
-            // and step forward for each additional slot.
-            // (i - 1) means avatar 3 is offset by 1 step, avatar 4 by 2 steps, etc.
-            Vector3 targetPosition = posB + (logic.AvatarStepOffset * (i - 1));
-
-            // Use the second avatar as the reference for offsetting all its child components correctly.
-            UICloneUtil.OffsetAvatar(avatarToMove, targetPosition, av2);
-        }
-
-        // Ensure all avatars are active/visible up to the max size.
-        for (int i = 0; i < slotsNeeded; i++)
-        {
-            UICloneUtil.SetAvatarActive(logic.AllMemberAvatars[i], true);
-        }
-
-        // Deactivate any extra, unused avatar slots if MaxPartySize was lowered.
-        for (int i = slotsNeeded; i < logic.AllMemberAvatars.Count; i++)
-        {
-            UICloneUtil.SetAvatarActive(logic.AllMemberAvatars[i], false);
-        }
-
-        // If list was longer than needed (e.g., MaxPartySize decreased), deactivate extras.
-        for (int i = slotsNeeded; i < logic.AllMemberAvatars.Count; i++)
-        {
-            var avatar = logic.AllMemberAvatars[i];
-            UICloneUtil.SetAvatarActive(avatar, false);
-            if (avatar.name != null)
-            {
-                avatar.name.gameObject.SetActive(false);
-            }
-        }
+        logic.isInitialized = true; // Mark as done.
+        FPELog.Info("Avatar setup simplified: Using 2 vanilla slots for all members.");
     }
 
     private static void SetupPartyMembers(
@@ -326,8 +235,6 @@ public static class ExpeditionMainPanelNew_Update_Postfix
 [HarmonyPatch(typeof(ExpeditionPartySetup), "UpdatePage")]
 public static class ExpeditionPartySetup_UpdatePage_Patch
 {
-    // Helper method to set a progress bar's value and color.
-    // This is copied from the original ExpeditionPartySetup class to be used here.
     private static void SetBarValue(UIProgressBar bar, float value, bool colour = true)
     {
         if (bar == null) return;
@@ -357,57 +264,84 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
         var tr = Traverse.Create(__instance);
         var elig = panel.eligiblePeople;
         int activeSlot = logic.ActiveSelectionSlot;
-        int highlightedIndex = logic.HighlightedIndices[activeSlot];
 
-        FamilyMember person = null;
+        // --- 1. Update the Main Stats Panel ---
+        // It should always display the stats for the character currently being highlighted in the active slot.
+        int highlightedIndex = logic.HighlightedIndices[activeSlot];
+        FamilyMember highlightedPerson = null;
         if (highlightedIndex >= 0 && highlightedIndex < elig.Count)
         {
-            person = elig[highlightedIndex];
+            highlightedPerson = elig[highlightedIndex];
         }
+        UpdateMainStatsPanel(__instance, highlightedPerson); // This helper contains all the stat/bar updates
 
-        // Determine which avatar pair to show (0&1, 2&3, etc.)
-        int visiblePairIndex = activeSlot / 2;
+        // --- 2. Update the two visible avatars ---
+        int firstAvatarSlotIndex = (activeSlot / 2) * 2; // This will be 0 for slots 0/1, 2 for slots 2/3, etc.
+        int secondAvatarSlotIndex = firstAvatarSlotIndex + 1;
 
-        // Show/hide and populate the correct avatar pairs
-        for (int i = 0; i < logic.AllMemberAvatars.Count; i++)
+        // Populate the left avatar (vanilla memberAvatar)
+        UpdateAvatarUI(logic.AllMemberAvatars[0], logic, firstAvatarSlotIndex, elig);
+
+        // Populate the right avatar (vanilla memberAvatar2)
+        if (secondAvatarSlotIndex < logic.MaxPartySize)
         {
-            if (i >= logic.MaxPartySize)
-            {
-                UICloneUtil.SetAvatarActive(logic.AllMemberAvatars[i], false);
-                continue;
-            }
-
-            var avatar = logic.AllMemberAvatars[i];
-            bool shouldBeVisible = (i / 2) == visiblePairIndex;
-            UICloneUtil.SetAvatarActive(avatar, shouldBeVisible);
-            if (!shouldBeVisible) continue;
-
-            int characterIndexToShow = (i == activeSlot)
-                ? logic.HighlightedIndices[i]
-                : logic.SelectedMemberIndices[i];
-
-            if (characterIndexToShow >= 0 && characterIndexToShow < elig.Count)
-            {
-                var p = elig[characterIndexToShow];
-                if (avatar.avatar != null) p.ColorizeAvatarSprite(avatar.avatar);
-                if (avatar.name != null) avatar.name.text = p.firstName;
-            }
-            else
-            {
-                if (avatar.avatar != null) avatar.avatar.sprite2D = null;
-                if (avatar.name != null) avatar.name.text = Localization.Get("Text.Name.Nobody");
-            }
+            UpdateAvatarUI(logic.AllMemberAvatars[1], logic, secondAvatarSlotIndex, elig);
+        }
+        else
+        {
+            // If MaxPartySize is odd, hide the second slot on the last page.
+            UICloneUtil.SetAvatarActive(logic.AllMemberAvatars[1], false);
         }
 
-        // Update MAIN display with the highlighted character's info
+        // --- 3. Update Arrow Buttons and Confirm Label ---
+        UpdateArrowButtons(__instance, logic, elig, highlightedIndex);
+        bool isLastConfirmableSlot = activeSlot >= logic.MaxPartySize - 1 || highlightedIndex == -1;
+        __instance.confirmLabel.text = Localization.Get(isLastConfirmableSlot ? "ui.map" : "ui.nextperson");
+
+        return false; // Block original method
+    }
+
+    // New helper to populate a single avatar UI element
+    private static void UpdateAvatarUI(ExpeditionPartySetup.MemberAvatar avatar, FourPersonPartyLogic logic, int slotIndex, IList<FamilyMember> elig)
+    {
+        UICloneUtil.SetAvatarActive(avatar, true);
+
+        int characterIndexToShow = (slotIndex == logic.ActiveSelectionSlot)
+            ? logic.HighlightedIndices[slotIndex]
+            : logic.SelectedMemberIndices[slotIndex];
+
+        if (characterIndexToShow >= 0 && characterIndexToShow < elig.Count)
+        {
+            var p = elig[characterIndexToShow];
+            if (avatar.avatar != null) p.ColorizeAvatarSprite(avatar.avatar);
+            if (avatar.name != null) avatar.name.text = p.firstName;
+        }
+        else
+        {
+            if (avatar.avatar != null) avatar.avatar.sprite2D = null;
+            if (avatar.name != null) avatar.name.text = Localization.Get("Text.Name.Nobody");
+        }
+
+        // Highlight the single active slot
+        bool active = (slotIndex == logic.ActiveSelectionSlot);
+        int hi = 20, lo = 10;
+        if (avatar.name != null) avatar.name.depth = active ? hi : lo;
+        if (avatar.avatar != null) avatar.avatar.depth = active ? hi : lo;
+        if (avatar.polaroid != null) avatar.polaroid.depth = active ? (hi - 1) : (lo - 1);
+        if (avatar.background != null) avatar.background.depth = active ? (hi - 2) : (lo - 2);
+    }
+
+    // Helper for stats (full version, no placeholders)
+    private static void UpdateMainStatsPanel(ExpeditionPartySetup setupInstance, FamilyMember person)
+    {
+        var tr = Traverse.Create(setupInstance);
         if (person != null)
         {
-            // --- FULL STATS AND LABELS UPDATE ---
-            __instance.memberCharisma.text = person.BaseStats.Charisma.Level.ToString("00");
-            __instance.memberDexterity.text = person.BaseStats.Dexterity.Level.ToString("00");
-            __instance.memberIntelligence.text = person.BaseStats.Intelligence.Level.ToString("00");
-            __instance.memberPerception.text = person.BaseStats.Perception.Level.ToString("00");
-            __instance.memberStrength.text = person.BaseStats.Strength.Level.ToString("00");
+            setupInstance.memberCharisma.text = person.BaseStats.Charisma.Level.ToString("00");
+            setupInstance.memberDexterity.text = person.BaseStats.Dexterity.Level.ToString("00");
+            setupInstance.memberIntelligence.text = person.BaseStats.Intelligence.Level.ToString("00");
+            setupInstance.memberPerception.text = person.BaseStats.Perception.Level.ToString("00");
+            setupInstance.memberStrength.text = person.BaseStats.Strength.Level.ToString("00");
 
             SetBarValue(tr.Field("strengthBar").GetValue<UIProgressBar>(), person.BaseStats.Strength.NormalizedExp, false);
             SetBarValue(tr.Field("dexterityBar").GetValue<UIProgressBar>(), person.BaseStats.Dexterity.NormalizedExp, false);
@@ -415,63 +349,59 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
             SetBarValue(tr.Field("intelligenceBar").GetValue<UIProgressBar>(), person.BaseStats.Intelligence.NormalizedExp, false);
             SetBarValue(tr.Field("charismaBar").GetValue<UIProgressBar>(), person.BaseStats.Charisma.NormalizedExp, false);
 
-            __instance.healthLabel.text = person.health.ToString() + "/" + person.maxHealth.ToString();
-            __instance.statusLabel.text = person.GetLocalizedStatusText();
-            __instance.illnessLabel.text = person.illness.ToString();
+            setupInstance.healthLabel.text = person.health.ToString() + "/" + person.maxHealth.ToString();
+            setupInstance.statusLabel.text = person.GetLocalizedStatusText();
+            setupInstance.illnessLabel.text = person.illness.ToString();
 
-            SetBarValue(__instance.hungerBar, person.stats.hunger.NormalizedValue);
-            SetBarValue(__instance.thirstBar, person.stats.thirst.NormalizedValue);
-            SetBarValue(__instance.tirednessBar, person.stats.fatigue.NormalizedValue);
-            SetBarValue(__instance.bathroomBar, person.stats.toilet.NormalizedValue);
-            SetBarValue(__instance.hygieneBar, person.stats.dirtiness.NormalizedValue);
-            SetBarValue(__instance.stressBar, person.stats.stress.NormalizedValue);
-            SetBarValue(__instance.traumaBar, person.stats.trauma.NormalizedValue);
+            SetBarValue(setupInstance.hungerBar, person.stats.hunger.NormalizedValue);
+            SetBarValue(setupInstance.thirstBar, person.stats.thirst.NormalizedValue);
+            SetBarValue(setupInstance.tirednessBar, person.stats.fatigue.NormalizedValue);
+            SetBarValue(setupInstance.bathroomBar, person.stats.toilet.NormalizedValue);
+            SetBarValue(setupInstance.hygieneBar, person.stats.dirtiness.NormalizedValue);
+            SetBarValue(setupInstance.stressBar, person.stats.stress.NormalizedValue);
+            SetBarValue(setupInstance.traumaBar, person.stats.trauma.NormalizedValue);
 
             var loyaltyBar = tr.Field("loyaltyBar").GetValue<UIProgressBar>();
-            if (loyaltyBar != null)
-            {
-                SetBarValue(loyaltyBar, person.stats.loyalty.NormalizedValue, false);
-                loyaltyBar.gameObject.SetActive(person.loyalty != FamilyMember.LoyaltyEnum.Loyal);
-            }
-            if (__instance.traumaBar != null)
-            {
-                __instance.traumaBar.gameObject.SetActive(person.loyalty == FamilyMember.LoyaltyEnum.Loyal);
-            }
+            if (loyaltyBar != null) { SetBarValue(loyaltyBar, person.stats.loyalty.NormalizedValue, false); loyaltyBar.gameObject.SetActive(person.loyalty != FamilyMember.LoyaltyEnum.Loyal); }
+            if (setupInstance.traumaBar != null) { setupInstance.traumaBar.gameObject.SetActive(person.loyalty == FamilyMember.LoyaltyEnum.Loyal); }
 
             var stringList = new List<string>();
             stringList.AddRange(person.traits.GetLocalizedStrengthNames(true));
             stringList.AddRange(person.traits.GetLocalizedWeaknessNames(true));
-            __instance.memberTraits.text = string.Join(", ", stringList.ToArray());
+            setupInstance.memberTraits.text = string.Join(", ", stringList.ToArray());
         }
         else
         {
-            // Clear all stats and labels if "Nobody" is selected
-            __instance.statusLabel.text = string.Empty;
-            __instance.healthLabel.text = string.Empty;
-            __instance.illnessLabel.text = string.Empty;
-            __instance.memberCharisma.text = string.Empty;
-            __instance.memberDexterity.text = string.Empty;
-            __instance.memberIntelligence.text = string.Empty;
-            __instance.memberPerception.text = string.Empty;
-            __instance.memberStrength.text = string.Empty;
-            __instance.memberTraits.text = string.Empty;
+            // Clear all stats
+            setupInstance.statusLabel.text = string.Empty;
+            setupInstance.healthLabel.text = string.Empty;
+            setupInstance.illnessLabel.text = string.Empty;
+            setupInstance.memberCharisma.text = string.Empty;
+            setupInstance.memberDexterity.text = string.Empty;
+            setupInstance.memberIntelligence.text = string.Empty;
+            setupInstance.memberPerception.text = string.Empty;
+            setupInstance.memberStrength.text = string.Empty;
+            setupInstance.memberTraits.text = string.Empty;
 
             SetBarValue(tr.Field("strengthBar").GetValue<UIProgressBar>(), 0f, false);
             SetBarValue(tr.Field("dexterityBar").GetValue<UIProgressBar>(), 0f, false);
             SetBarValue(tr.Field("perceptionBar").GetValue<UIProgressBar>(), 0f, false);
             SetBarValue(tr.Field("intelligenceBar").GetValue<UIProgressBar>(), 0f, false);
             SetBarValue(tr.Field("charismaBar").GetValue<UIProgressBar>(), 0f, false);
-            SetBarValue(__instance.hungerBar, 0f);
-            SetBarValue(__instance.thirstBar, 0f);
-            SetBarValue(__instance.tirednessBar, 0f);
-            SetBarValue(__instance.bathroomBar, 0f);
-            SetBarValue(__instance.hygieneBar, 0f);
-            SetBarValue(__instance.stressBar, 0f);
-            SetBarValue(__instance.traumaBar, 0f);
+            SetBarValue(setupInstance.hungerBar, 0f);
+            SetBarValue(setupInstance.thirstBar, 0f);
+            SetBarValue(setupInstance.tirednessBar, 0f);
+            SetBarValue(setupInstance.bathroomBar, 0f);
+            SetBarValue(setupInstance.hygieneBar, 0f);
+            SetBarValue(setupInstance.stressBar, 0f);
+            SetBarValue(setupInstance.traumaBar, 0f);
             SetBarValue(tr.Field("loyaltyBar").GetValue<UIProgressBar>(), 0f, false);
         }
+    }
 
-        // --- ARROW LOGIC ---
+    // Helper for arrows
+    private static void UpdateArrowButtons(ExpeditionPartySetup setupInstance, FourPersonPartyLogic logic, IList<FamilyMember> elig, int highlightedIndex)
+    {
         bool canGoNext = false;
         for (int i = 1; i <= elig.Count + 1; i++)
         {
@@ -483,8 +413,7 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
                 break;
             }
         }
-        if (__instance.memberRightArrow != null)
-            __instance.memberRightArrow.GetComponent<UIButton>().isEnabled = canGoNext;
+        if (setupInstance.memberRightArrow != null) setupInstance.memberRightArrow.GetComponent<UIButton>().isEnabled = canGoNext;
 
         bool canGoPrev = false;
         for (int i = 1; i <= elig.Count + 1; i++)
@@ -497,30 +426,7 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
                 break;
             }
         }
-        if (__instance.memberLeftArrow != null)
-            __instance.memberLeftArrow.GetComponent<UIButton>().isEnabled = canGoPrev;
-
-        // --- FULL HIGHLIGHT LOGIC ---
-        for (int i = 0; i < logic.AllMemberAvatars.Count; i++)
-        {
-            if (i >= logic.MaxPartySize) continue;
-
-            bool active = (i == logic.ActiveSelectionSlot);
-            var avatar = logic.AllMemberAvatars[i];
-            int hi = 20, lo = 10;
-
-            if (avatar.name != null) avatar.name.depth = active ? hi : lo;
-            if (avatar.avatar != null) avatar.avatar.depth = active ? hi : lo;
-            if (avatar.polaroid != null) avatar.polaroid.depth = active ? (hi - 1) : (lo - 1);
-            if (avatar.background != null) avatar.background.depth = active ? (hi - 2) : (lo - 2);
-        }
-
-        // Update confirm label
-        bool isLastConfirmableSlot = logic.ActiveSelectionSlot >= logic.MaxPartySize - 1 || logic.HighlightedIndices[logic.ActiveSelectionSlot] == -1;
-        if (__instance.confirmLabel != null)
-            __instance.confirmLabel.text = Localization.Get(isLastConfirmableSlot ? "ui.map" : "ui.nextperson");
-
-        return false; // Block the original method
+        if (setupInstance.memberLeftArrow != null) setupInstance.memberLeftArrow.GetComponent<UIButton>().isEnabled = canGoPrev;
     }
 }
 
