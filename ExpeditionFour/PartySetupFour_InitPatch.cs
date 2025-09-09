@@ -104,8 +104,89 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
         bool isLastConfirmableSlot = activeSlot >= logic.MaxPartySize - 1 || highlightedIndex == -1;
         if (__instance.confirmLabel != null)
             __instance.confirmLabel.text = Localization.Get(isLastConfirmableSlot ? "ui.map" : "ui.nextperson");
+
+        // Update the stats panel
+        FamilyMember person = null;
+        if (highlightedIndex >= 0 && highlightedIndex < elig.Count)
+        {
+            person = elig[highlightedIndex];
+        }
+        UpdateStatsUI(__instance, person);
     }
 
+    private static void UpdateStatsUI(ExpeditionPartySetup setup, FamilyMember person)
+    {
+        if (person != null)
+        {
+            BaseStats baseStats = person.BaseStats;
+            BehaviourStats stats = person.stats;
+            if (baseStats != null)
+            {
+                setup.memberCharisma.text = person.BaseStats.Charisma.Level.ToString("00");
+                setup.memberDexterity.text = person.BaseStats.Dexterity.Level.ToString("00");
+                setup.memberIntelligence.text = person.BaseStats.Intelligence.Level.ToString("00");
+                setup.memberPerception.text = person.BaseStats.Perception.Level.ToString("00");
+                setup.memberStrength.text = person.BaseStats.Strength.Level.ToString("00");
+                Traverse.Create(setup).Method("SetBarValue", setup.strengthBar, baseStats.Strength.NormalizedExp, false).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.dexterityBar, baseStats.Dexterity.NormalizedExp, false).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.perceptionBar, baseStats.Perception.NormalizedExp, false).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.intelligenceBar, baseStats.Intelligence.NormalizedExp, false).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.charismaBar, baseStats.Charisma.NormalizedExp, false).GetValue();
+            }
+            setup.healthLabel.text = person.health.ToString() + "/" + person.maxHealth.ToString();
+            setup.statusLabel.text = person.GetLocalizedStatusText();
+            setup.illnessLabel.text = person.illness.ToString();
+            if (stats != null)
+            {
+                Traverse.Create(setup).Method("SetBarValue", setup.hungerBar, stats.hunger.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.thirstBar, stats.thirst.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.tirednessBar, stats.fatigue.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.bathroomBar, stats.toilet.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.hygieneBar, stats.dirtiness.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.stressBar, stats.stress.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.traumaBar, stats.trauma.NormalizedValue, true).GetValue();
+                Traverse.Create(setup).Method("SetBarValue", setup.loyaltyBar, stats.loyalty.NormalizedValue, false).GetValue();
+                if (setup.traumaBar != null)
+                    setup.traumaBar.gameObject.SetActive(person.loyalty == FamilyMember.LoyaltyEnum.Loyal);
+                if (setup.loyaltyBar != null)
+                    setup.loyaltyBar.gameObject.SetActive(person.loyalty != FamilyMember.LoyaltyEnum.Loyal);
+            }
+            List<string> stringList = new List<string>();
+            stringList.AddRange(person.traits.GetLocalizedStrengthNames(true));
+            stringList.AddRange(person.traits.GetLocalizedWeaknessNames(true));
+            setup.memberTraits.text = string.Empty;
+            for (int index = 0; index < stringList.Count; ++index)
+            {
+                if (index > 0)
+                    setup.memberTraits.text += ", ";
+                setup.memberTraits.text += stringList[index];
+            }
+        }
+        else
+        {
+            setup.statusLabel.text = string.Empty;
+            setup.healthLabel.text = string.Empty;
+            setup.illnessLabel.text = string.Empty;
+            setup.memberCharisma.text = string.Empty;
+            setup.memberDexterity.text = string.Empty;
+            setup.memberIntelligence.text = string.Empty;
+            setup.memberPerception.text = string.Empty;
+            setup.memberStrength.text = string.Empty;
+            setup.memberTraits.text = string.Empty;
+            Traverse.Create(setup).Method("SetBarValue", setup.strengthBar, 0.0f, false).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.dexterityBar, 0.0f, false).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.perceptionBar, 0.0f, false).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.intelligenceBar, 0.0f, false).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.charismaBar, 0.0f, false).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.hungerBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.thirstBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.tirednessBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.bathroomBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.hygieneBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.stressBar, 0.0f, true).GetValue();
+            Traverse.Create(setup).Method("SetBarValue", setup.traumaBar, 0.0f, true).GetValue();
+        }
+    }
     private static void UpdateAvatarUI(ExpeditionPartySetup.MemberAvatar avatar, FourPersonPartyLogic logic, int slotIndex, IList<FamilyMember> elig)
     {
         UICloneUtil.SetAvatarActive(avatar, true);
