@@ -16,7 +16,17 @@ public class MyPlugin : IModPlugin
 
         // Apply patches
         var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");
-        harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
+
+        try
+        {
+            harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
+        }
+        catch (System.Exception ex)
+        {
+            FPELog.Warn($"Harmony PatchAll failed: {ex.ToString()}");
+        }
+
+
 
         // Optional: if the API provides AddComponentToPanel, use it to prime the behaviour instance
         // Otherwise, our OnShow patch attaches this component on-demand.
@@ -26,23 +36,23 @@ public class MyPlugin : IModPlugin
             var method = ctx.GetType().GetMethod("AddComponentToPanel");
             if (method != null)
             {
-                ctx.Log.Info("Attempting AddComponentToPanel: UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
+                FPELog.Info("Attempting AddComponentToPanel: UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
                 var generic = method.MakeGenericMethod(typeof(FourPersonPartyLogic));
                 var logicObj = generic.Invoke(ctx, new object[] { "UI Root/ExpeditionPanel/ExpeditionMainPanelNew" });
                 var logic = logicObj as FourPersonPartyLogic;
                 if (logic != null)
                 {
                     logic.MaxPartySize = FourPersonConfig.MaxPartySize;
-                    ctx.Log.Info("AddComponentToPanel succeeded; logic attached.");
+                    FPELog.Info("AddComponentToPanel succeeded; logic attached.");
                 }
                 else
                 {
-                    ctx.Log.Info("AddComponentToPanel returned null; will attach on OnShow.");
+                    FPELog.Info("AddComponentToPanel returned null; will attach on OnShow.");
                 }
             }
         }
-        catch (System.Exception ex) { ctx.Log.Info($"AddComponentToPanel failed: {ex.Message}"); }
+        catch (System.Exception ex) { FPELog.Info($"AddComponentToPanel failed: {ex.Message}"); }
 
-        ctx.Log.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
+        FPELog.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
     }
 }
