@@ -81,62 +81,25 @@ namespace ExpeditionFour.UI
                                  .GetValue(__instance) as List<PartyMember>;
             var members = (pms ?? new List<PartyMember>()).Select(pm => pm?.person).ToList();
 
-            for (int i = 0; i < blocks.Count && i < 4; i++)
+            // Only create blocks for actual party members, not always 4
+            int targetBlockCount = Mathf.Min(members.Count, FourPersonConfig.MaxPartySize);
+            while (blocks.Count < targetBlockCount && blocks.Count > 0)
             {
-                var b = blocks[i];
-                var m = (i < members.Count) ? members[i] : null;
+                var src = blocks[blocks.Count - 1];
+                var clone = Object.Instantiate(src.gameObject, parent);
+                clone.name = src.gameObject.name + "_FPE" + blocks.Count;
+                clone.transform.localScale = Vector3.one;
+                clone.SetActive(true);
 
-                bool rebound = false;
-                try
-                {
-                    var setMethod = AccessTools.Method(b.GetType(), "InitializeFromMember");
-                    if (setMethod != null && m != null)
-                    {
-                        setMethod.Invoke(b, new object[] { m });
-                        rebound = true;
-                    }
-                }
-                catch { }
+                var comp = clone.GetComponent<EncounterSummaryCharacter>();
+                if (comp != null) blocks.Add(comp);
+                else blocks.Add(src); // extremely defensive; shouldn't happen
+            }
 
-                if (m != null)
-                {
-                    // Always ensure portrait is refreshed (covers clones)
-                    var avatar = FindAvatarSprite(b);
-                    if (avatar != null)
-                    {
-                        // Force each cloned sprite to get its own material instance
-                        if (avatar.material != null)
-                        {
-                            avatar.material = new Material(avatar.material); // Create independent copy
-                        }
-
-                        avatar.sprite2D = null;
-                        m.ColorizeAvatarSprite(avatar);
-                        avatar.MarkAsChanged();
-                    }
-                    FPELog.Info($"[FPE/UI] Using avatar sprite: {avatar?.name} for {m.firstName}");
-                }
-
-                if (!rebound && m != null)
-                {
-                    // your existing fallback label updates...
-                    var nameLbl = b.GetComponentInChildren<UILabel>();
-                    if (nameLbl != null) nameLbl.text = m.firstName;
-                    foreach (var lbl in b.GetComponentsInChildren<UILabel>())
-                    {
-                        string lname = lbl.name.ToLowerInvariant();
-                        if (lname.Contains("strength"))
-                            lbl.text = $"Strength {m.BaseStats?.Strength?.Level ?? 0}";
-                        else if (lname.Contains("dexterity"))
-                            lbl.text = $"Dexterity {m.BaseStats?.Dexterity?.Level ?? 0}";
-                        else if (lname.Contains("charisma"))
-                            lbl.text = $"Charisma {m.BaseStats?.Charisma?.Level ?? 0}";
-                        else if (lname.Contains("intelligence"))
-                            lbl.text = $"Intelligence {m.BaseStats?.Intelligence?.Level ?? 0}";
-                        else if (lname.Contains("perception"))
-                            lbl.text = $"Perception {m.BaseStats?.Perception?.Level ?? 0}";
-                    }
-                }
+            // Hide any extra blocks that aren't needed
+            for (int i = targetBlockCount; i < blocks.Count; i++)
+            {
+                blocks[i].gameObject.SetActive(false);
             }
 
             // 2×2 layout (L/R columns). Use the first block’s local Y as anchor.
@@ -147,26 +110,112 @@ namespace ExpeditionFour.UI
 
             const float X_OFFSET = 45f;
 
-            var targets = new Vector3[]
-            {
-                new Vector3(xLeft  + X_OFFSET, yTop,    0),
-                new Vector3(xLeft  + X_OFFSET, yBottom, 0),
-                new Vector3(xRight + X_OFFSET, yTop,    0),
-                new Vector3(xRight + X_OFFSET, yBottom, 0),
-            };
+            // Layout based on actual number of blocks needed
+            int actualBlocks = Mathf.Min(blocks.Count, members.Count);
 
-            int placed = 0;
-            for (int i = 0; i < blocks.Count && i < 4; i++)
+            if (actualBlocks <= 2)
             {
-                var t = blocks[i].transform;
-                t.localPosition = targets[i];
-                t.localScale = Vector3.one;
-                placed++;
+                // Use vertical layout for 1-2 members (like vanilla)
+                for (int i = 0; i < actualBlocks; i++)
+                {
+                    var t = blocks[i].transform;
+                    t.localPosition = new Vector3(-50f, yTop - (i * 160f), 0);
+                    t.localScale = Vector3.one;
+                }
+            }
+            else
+            {
+                // Use 2×2 layout for 3-4 members
+                var targets = new Vector3[]
+                {
+                    new Vector3(xLeft + X_OFFSET, yTop, 0),
+                    new Vector3(xLeft + X_OFFSET, yBottom, 0),
+                    new Vector3(xRight + X_OFFSET, yTop, 0),
+                    new Vector3(xRight + X_OFFSET, yBottom, 0),
+                };
+
+                for (int i = 0; i < actualBlocks && i < 4; i++)
+                {
+                    var t = blocks[i].transform;
+                    t.localPosition = targets[i];
+                    t.localScale = Vector3.one;
+                }
             }
 
-            FPELog.Warn($"[FPE/UI] SummaryLayout: found {blocks.Count} character blocks, placed {placed} as 2x2.");
-
             _doneForParty.Add(id);
+        }
+    }
+
+
+namespace ExpeditionFour.ExperiencePatches
+    {
+        [HarmonyPatch(typeof(ExplorationParty), "Begin_Finished")]
+        public static class ExplorationParty_Begin_Finished_Patch
+        {
+            public static bool Prefix(ExplorationParty __instance)
+            {
+                // Get the private fields we need
+                var tr = Traverse.Create(__instance);
+                var partyMembers = tr.Field("m_partyMembers").GetValue<System.Collections.Generic.List<PartyMember>>();
+                int searchExperienceGained = tr.Field("m_searchExperienceGained").GetValue<int>();
+                bool participatedInCombat = tr.Field("m_participatedInCombat").GetValue<bool>();
+                var searchedThisTrip = tr.Field("m_searchedThisTrip").GetValue<System.Collections.Generic.List<string>>();
+                bool encounteredNpcsThisTrip = tr.Field("m_encounteredNpcsThisTrip").GetValue<bool>();
+
+                FPELog.Info($"Begin_Finished Patch: Processing {partyMembers.Count} party members for experience");
+
+                // Achievement callback
+                if (AchievementManager.instance != null)
+                    AchievementManager.instance.OnExpeditionOver(__instance.id);
+
+                // Award experience to ALL party members (this is the fix)
+                foreach (PartyMember partyMember in partyMembers)
+                {
+                    if (partyMember?.person != null)
+                    {
+                        partyMember.person.isAway = false;
+                        var perceptionStat = partyMember.person.BaseStats.GetStatByEnum(BaseStats.StatType.Perception);
+                        perceptionStat.IncreaseExp(searchExperienceGained);
+                        FPELog.Info($"  -> Awarded {searchExperienceGained} Perception XP to {partyMember.person.firstName}");
+                    }
+                }
+
+                // Call the exploration manager
+                ExplorationManager.Instance.PartyHasReturned(__instance.id);
+
+                // Reset party state flags
+                tr.Field("m_partyReturning").SetValue(false);
+                tr.Field("m_partyWalkingToShelter").SetValue(false);
+
+                // Journal entries (vanilla logic)
+                if (participatedInCombat)
+                {
+                    JournalManager.Instance.CreateJournalEntry(JournalManager.JournalEntryType.Combat);
+                }
+                else if ((searchedThisTrip.Count > 0 || encounteredNpcsThisTrip) && UnityEngine.Random.Range(0, 4) == 0)
+                {
+                    if (searchedThisTrip.Count > 0)
+                    {
+                        int index = UnityEngine.Random.Range(0, searchedThisTrip.Count);
+                        JournalManager.Instance.RecordEvent(JournalEvents.Event.ExplorationLocation,
+                            new ActivityLog.ExtraInfoString(__instance.id.ToString(), false),
+                            new ActivityLog.ExtraInfoString(searchedThisTrip[index], false));
+                    }
+                    if (encounteredNpcsThisTrip)
+                        JournalManager.Instance.RecordEvent(JournalEvents.Event.ExplorationNPC,
+                            new ActivityLog.ExtraInfoString(__instance.id.ToString(), false));
+
+                    JournalManager.Instance.RecordEvent(JournalEvents.Event.ExplorationEnded,
+                        new ActivityLog.ExtraInfoString(__instance.id.ToString(), false));
+                    JournalManager.Instance.CreateJournalEntry(JournalManager.JournalEntryType.Exploration);
+                }
+
+                // Push the Finished state
+                var pushStateMethod = AccessTools.Method(typeof(ExplorationParty), "PushState");
+                pushStateMethod.Invoke(__instance, new object[] { ExplorationParty.ePartyState.Finished });
+
+                return false; // Skip original method
+            }
         }
     }
 }
