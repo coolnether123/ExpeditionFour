@@ -56,7 +56,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CreateTeam\CombatPatches.cs" />
+    <Compile Include="CombatPatches\CombatPatches.cs" />
+    <Compile Include="CombatPatches\DialogueDebug.cs" />
     <Compile Include="LoadoutManager\FourPersonPartyLogic.cs" />
     <Compile Include="CreateTeam\ManagerPatches.cs" />
     <Compile Include="CreateTeam\PanelPatches.cs" />
@@ -69,7 +70,6 @@
     <Compile Include="PartySetupFour_Navigation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SavePatches\AddMemberToParty.cs" />
-    <Compile Include="SavePatches\DebugHarness.cs" />
     <Compile Include="SavePatches\FixOnLoad_AwayFlags.cs" />
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
     <Compile Include="UI\ReturnSummaryFour.cs" />

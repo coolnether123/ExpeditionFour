@@ -116,48 +116,7 @@ namespace ExpeditionFour.SavePatches
 
     // ======================= HEAVY TRACING HOOKS =======================
 
-    /*[HarmonyPatch(typeof(SaveManager), "SaveLoad")]
-    internal static class Trace_SaveManager_SaveLoad
-    {
-        static void Prefix(SaveManager __instance, SaveData data)
-        {
-            FPELog.Warn($"[FPE/TRACE] SaveManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
-        }
-        static void Postfix(SaveManager __instance, SaveData data)
-        {
-            FPELog.Warn($"[FPE/TRACE] SaveManager.SaveLoad done ({(data?.isLoading == true ? "loading" : "saving")})");
-        }
-    }*/
-
-    [HarmonyPatch(typeof(FamilyManager), nameof(FamilyManager.SaveLoad))]
-    internal static class Trace_FamilyManager_SaveLoad
-    {
-        static void Prefix(FamilyManager __instance, SaveData data)
-        {
-            FPELog.Warn($"[FPE/TRACE] FamilyManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
-        }
-
-        static void Postfix(FamilyManager __instance, SaveData data)
-        {
-            try
-            {
-                var list = AccessTools.Field(typeof(FamilyManager), "m_familyMembers")
-                                      .GetValue(__instance) as List<FamilyMember>;
-                if (list != null)
-                {
-                    var lines = new List<string>();
-                    foreach (var m in list)
-                        if (m != null) lines.Add(FpeDebugFmt.MemberFlags(m));
-                    FPELog.Warn($"[FPE/TRACE] FamilyManager members: [{string.Join(", ", lines.ToArray())}]");
-                }
-            }
-            catch (Exception e)
-            {
-                FPELog.Warn($"[FPE/TRACE] FamilyManager.SaveLoad post-trace error: {e}");
-            }
-        }
-    }
-
+   
     [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.SaveLoad))]
     internal static class Trace_ExplorationManager_SaveLoad
     {
