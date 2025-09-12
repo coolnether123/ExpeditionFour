@@ -53,7 +53,8 @@ namespace FourPersonExpeditions.CombatFixes
     #endregion
 
     #region 2. Encounter Manager Slot Creation (The Actors)
-    // This section remains the same as it is correct.
+    // TODO: For a future version (v0.8+), take a better look at character positioning
+    // to patch over the whole thing and do it custom, rather than relying on game's base positions.
     [HarmonyPatch(typeof(EncounterManager), nameof(EncounterManager.StartManager))]
     public static class EncounterManager_StartManager_Patch
     {
@@ -98,7 +99,9 @@ namespace FourPersonExpeditions.CombatFixes
                 var cloneGo = UnityEngine.Object.Instantiate(last.gameObject, parent);
                 cloneGo.name = $"{last.name}_FPE_Clone_{i}";
                 int step = i - (startCount - 1);
-                cloneGo.transform.localPosition = last.transform.localPosition + (posStep * step);
+                Vector3 calculatedPosition = last.transform.localPosition + (posStep * step);
+                
+                cloneGo.transform.localPosition = calculatedPosition;
                 cloneGo.transform.localRotation = last.transform.localRotation;
                 cloneGo.transform.localScale = last.transform.localScale;
 
@@ -106,14 +109,47 @@ namespace FourPersonExpeditions.CombatFixes
                 if (encChar != null)
                 {
                     var encTr = Traverse.Create(encChar);
-                    encTr.Field("field_home_position").SetValue(lastFieldHome + (stepField * step));
-                    encTr.Field("breach_home_position").SetValue(lastBreachHome + (stepBreach * step));
-                    encTr.Field("above_breach_home_position").SetValue(lastAboveHome + (stepAbove * step));
+                    Vector3 finalFieldHome = lastFieldHome + (stepField * step);
+                    Vector3 finalBreachHome = lastBreachHome + (stepBreach * step);
+                    Vector3 finalAboveHome = lastAboveHome + (stepAbove * step);
+
+                    if (i == startCount) // This is the first character added by the patch (the 4th person)
+                    {
+                        // Adjust X to move further left, Y to move up, Z remains 0
+                        finalFieldHome += new Vector3(-300f, 105f, 0f);
+                        finalBreachHome += new Vector3(-300f, 105f, 0f);
+                        finalAboveHome += new Vector3(-300f, 105f, 0f);
+
+                        FPELog.Info($"[CombatSetup] Fourth Person - Field Home Position: X={finalFieldHome.x}, Y={finalFieldHome.y}, Z={finalFieldHome.z}");
+                        FPELog.Info($"[CombatSetup] Fourth Person - Breach Home Position: X={finalBreachHome.x}, Y={finalBreachHome.y}, Z={finalBreachHome.z}");
+                        FPELog.Info($"[CombatSetup] Fourth Person - Above Breach Home Position: X={finalAboveHome.x}, Y={finalAboveHome.y}, Z={finalAboveHome.z}");
+                    }
+
+                    encTr.Field("field_home_position").SetValue(finalFieldHome);
+                    encTr.Field("breach_home_position").SetValue(finalBreachHome);
+                    encTr.Field("above_breach_home_position").SetValue(finalAboveHome);
 
                     encChar.Initialise();
                     cloneGo.SetActive(false);
                     list.Add(encChar);
                 }
+            }
+
+            // Log positions and names for all player characters
+            FPELog.Info("[CombatSetup] All Player Character Positions:");
+            for (int i = 0; i < list.Count; i++)
+            {
+                var character = list[i];
+                var charTr = Traverse.Create(character); // Create Traverse for the character
+
+                Vector3 fieldHome = charTr.Field("field_home_position").GetValue<Vector3>();
+                Vector3 breachHome = charTr.Field("breach_home_position").GetValue<Vector3>();
+                Vector3 aboveBreachHome = charTr.Field("above_breach_home_position").GetValue<Vector3>();
+
+                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Position: X={character.transform.position.x}, Y={character.transform.position.y}, Z={character.transform.position.z}");
+                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Field Home: X={fieldHome.x}, Y={fieldHome.y}, Z={fieldHome.z}");
+                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Breach Home: X={breachHome.x}, Y={breachHome.y}, Z={breachHome.z}");
+                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Above Breach Home: X={aboveBreachHome.x}, Y={aboveBreachHome.y}, Z={aboveBreachHome.z}");
             }
         }
     }
