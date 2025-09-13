@@ -9,16 +9,26 @@ internal static class MMLogger
     }
 }
 
+internal static class FpeDebug
+{
+    // Toggle from plugin via ModSettings; defaults to false
+    public static bool Enabled = false;
+}
+
 internal static class FPELog
 {
-
-    public static void Info(string msg) { 
-        MMLog.Write("[FourPersonExpeditions] " + msg); 
+    // Info-level logs respect the debug toggle to keep release build output clean
+    public static void Info(string msg)
+    {
+        if (!FpeDebug.Enabled) return;
+        MMLog.Write("[FourPersonExpeditions] " + msg);
     }
-    public static void Warn(string msg) { 
-        MMLog.Write("[FourPersonExpeditionsWarning] " + msg); // Commenting out logging for v0.7 pre-release
-    }
 
+    // Warnings always print; used for state reconciliation or potential issues
+    public static void Warn(string msg)
+    {
+        MMLog.Write("[FourPersonExpeditionsWarning] " + msg);
+    }
 }
 
 internal static class UICloneUtil

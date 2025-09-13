@@ -95,7 +95,7 @@ namespace ExpeditionFour.SavePatches
             var mustBeAway = MustBeAwayStates.Contains(state);
 
             // Dump state & members as loaded.
-            FPELog.Warn($"[FPE/TRACE] PARTY LOAD: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Info($"[FPE/TRACE] PARTY LOAD: {FpeDebugFmt.PartyLine(__instance)}");
 
             // Reconcile members
             var memberList = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
@@ -115,7 +115,7 @@ namespace ExpeditionFour.SavePatches
                 {
                     if (!person.isAway || !person.finishedLeavingShelter)
                     {
-                        FPELog.Warn($"[FPE/TRACE]  -> Fixing flags on {person.firstName}: was away={person.isAway}, left={person.finishedLeavingShelter}; forcing away=true,left=true (state={state})");
+                        FPELog.Info($"[FPE/TRACE]  -> Fixing flags on {person.firstName}: was away={person.isAway}, left={person.finishedLeavingShelter}; forcing away=true,left=true (state={state})");
                     }
 
                     // Ensure away/left flags and clear any outstanding jobs like vanilla OnShelterLeft().
@@ -157,7 +157,7 @@ namespace ExpeditionFour.SavePatches
                 }
             }
 
-            FPELog.Warn($"[FPE/TRACE] PARTY POST-FIX: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Info($"[FPE/TRACE] PARTY POST-FIX: {FpeDebugFmt.PartyLine(__instance)}");
         }
     }
 
@@ -169,14 +169,14 @@ namespace ExpeditionFour.SavePatches
     {
         static void Prefix(ExplorationManager __instance, SaveData data)
         {
-            FPELog.Warn($"[FPE/TRACE] ExplorationManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
+            FPELog.Info($"[FPE/TRACE] ExplorationManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
             var tr = Traverse.Create(__instance);
             float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
             float radioTimeoutTimer = tr.Field("m_radioTimeoutTimer").GetValue<float>();
             Obj_Radio shelterRadio = tr.Method("GetShelterRadio").GetValue<Obj_Radio>(); 
             bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
 
-            FPELog.Warn($"[FPE/TRACE]   Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+            FPELog.Info($"[FPE/TRACE]   Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
         }
 
         static void Postfix(ExplorationManager __instance, SaveData data)
@@ -191,11 +191,11 @@ namespace ExpeditionFour.SavePatches
                 bool radioDialogPanelShowing = emTr.Field("m_radioDialogPanel").GetValue<RadioDialogPanel>().IsShowing();
                 bool anyPartiesCallingIn = __instance.AnyPartiesCallingIn();
 
-                FPELog.Warn($"[FPE/TRACE]   ExplorationManager State (Postfix):");
-                FPELog.Warn($"[FPE/TRACE]     Radio Timers: Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}");
-                FPELog.Warn($"[FPE/TRACE]     Radio Incoming Transmission: {incomingTransmission}");
-                FPELog.Warn($"[FPE/TRACE]     Radio Dialog Panel Showing: {radioDialogPanelShowing}");
-                FPELog.Warn($"[FPE/TRACE]     Any Parties Calling In: {anyPartiesCallingIn}");
+                FPELog.Info($"[FPE/TRACE]   ExplorationManager State (Postfix):");
+                FPELog.Info($"[FPE/TRACE]     Radio Timers: Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}");
+                FPELog.Info($"[FPE/TRACE]     Radio Incoming Transmission: {incomingTransmission}");
+                FPELog.Info($"[FPE/TRACE]     Radio Dialog Panel Showing: {radioDialogPanelShowing}");
+                FPELog.Info($"[FPE/TRACE]     Any Parties Calling In: {anyPartiesCallingIn}");
 
                 var partiesDict = AccessTools.Field(typeof(ExplorationManager), "m_parties")
                                       .GetValue(__instance) as Dictionary<int, ExplorationParty>;
@@ -204,19 +204,19 @@ namespace ExpeditionFour.SavePatches
                     foreach (var kv in partiesDict)
                     {
                         var party = kv.Value;
-                        FPELog.Warn($"[FPE/TRACE]   Party #{party.id} State:");
-                        FPELog.Warn($"[FPE/TRACE]     State: {party.state}");
-                        FPELog.Warn($"[FPE/TRACE]     Is Recalled: {party.isRecalled}");
-                        FPELog.Warn($"[FPE/TRACE]     Is Returning: {party.isReturning}");
-                        FPELog.Warn($"[FPE/TRACE]     Is Walking To Shelter: {party.isWalkingToShelter}");
+                        FPELog.Info($"[FPE/TRACE]   Party #{party.id} State:");
+                        FPELog.Info($"[FPE/TRACE]     State: {party.state}");
+                        FPELog.Info($"[FPE/TRACE]     Is Recalled: {party.isRecalled}");
+                        FPELog.Info($"[FPE/TRACE]     Is Returning: {party.isReturning}");
+                        FPELog.Info($"[FPE/TRACE]     Is Walking To Shelter: {party.isWalkingToShelter}");
 
                         var radioParams = Traverse.Create(party).Field("m_radioParams").GetValue<ExplorationManager.RadioDialogParams>();
                         if (radioParams != null)
                         {
-                            FPELog.Warn($"[FPE/TRACE]     Radio Params: Question='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
+                            FPELog.Info($"[FPE/TRACE]     Radio Params: Question='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
                         }
                         var radioResponse = Traverse.Create(party).Field("m_radioResponse").GetValue<RadioDialogPanel.RadioResponse>();
-                        FPELog.Warn($"[FPE/TRACE]     Radio Response: {radioResponse}");
+                        FPELog.Info($"[FPE/TRACE]     Radio Response: {radioResponse}");
 
                         var memberList = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
                                                     .GetValue(party) as List<PartyMember>;
@@ -228,7 +228,7 @@ namespace ExpeditionFour.SavePatches
                                 if (fm != null)
                                 {
                                     var pos = fm.transform != null ? (Vector3?)fm.transform.position : null;
-                                    FPELog.Warn($"[FPE/TRACE]       Member: {fm.firstName} (isAway={fm.isAway}, finishedLeavingShelter={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, job_queue.size={fm.job_queue?.size}, ai_queue.size={fm.ai_queue?.size})");
+                                    FPELog.Info($"[FPE/TRACE]       Member: {fm.firstName} (isAway={fm.isAway}, finishedLeavingShelter={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, job_queue.size={fm.job_queue?.size}, ai_queue.size={fm.ai_queue?.size})");
                                 }
                             }
                         }
@@ -247,7 +247,7 @@ namespace ExpeditionFour.SavePatches
     {
         static void Postfix(ExplorationParty __instance)
         {
-            FPELog.Warn($"[FPE/TRACE] RECALL: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Info($"[FPE/TRACE] RECALL: {FpeDebugFmt.PartyLine(__instance)}");
         }
     }
 
@@ -262,7 +262,7 @@ namespace ExpeditionFour.SavePatches
                 var ch = AccessTools.Field(typeof(Job), "character").GetValue(__instance) as FamilyMember;
                 var action = AccessTools.Field(typeof(Job_GoToLocation), "m_callbackAction").GetValue(__instance);
                 if (ch != null)
-                    FPELog.Warn($"[FPE/TRACE] Job_GoToLocation.BeginJob for {ch.firstName} action={action}");
+                    FPELog.Info($"[FPE/TRACE] Job_GoToLocation.BeginJob for {ch.firstName} action={action}");
             }
             catch { /* best effort */ }
         }

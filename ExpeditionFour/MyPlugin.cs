@@ -6,53 +6,50 @@ public class MyPlugin : IModPlugin
 {
     public void Initialize(IPluginContext ctx)
     {
-        // no-op for now
+        // Configure tracing from settings so we can turn noisy logs on/off
+        try
+        {
+            bool trace = ctx?.Settings != null ? ctx.Settings.GetBool("trace", false) : false;
+            FpeDebug.Enabled = trace;
+        }
+        catch { FpeDebug.Enabled = false; }
     }
 
     public void Start(IPluginContext ctx)
     {
-        // Read configurable party size (default 4)
-        FourPersonConfig.MaxPartySize = 4; // Possible in the future to make this more. For now hard codded just like the game
+        // Read configurable party size (default 4, clamped >= 2)
+        int configured = 4;
+        try { configured = ctx?.Settings != null ? ctx.Settings.GetInt("maxPartySize", 4) : 4; } catch { configured = 4; }
+        FourPersonConfig.MaxPartySize = Mathf.Max(2, configured);
 
         // Apply patches
         var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");
 
+        try { harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly()); }
+        catch (System.Exception ex) { FPELog.Warn($"Harmony PatchAll failed: {ex.ToString()}"); }
+
+
+
+        // Attach our logic to the Expedition panel if it already exists; otherwise, UI patches will attach on OnShow.
         try
         {
-            harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
+            if (FpeDebug.Enabled) ctx.Log?.Info("Attempting AddComponentToPanel: UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
+            var logic = ctx.AddComponentToPanel<FourPersonPartyLogic>("UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
+            if (logic != null)
+            {
+                logic.MaxPartySize = FourPersonConfig.MaxPartySize;
+                if (FpeDebug.Enabled) ctx.Log?.Info("AddComponentToPanel succeeded; logic attached.");
+            }
+            else
+            {
+                if (FpeDebug.Enabled) ctx.Log?.Info("FindPanel failed; will attach on OnShow.");
+            }
         }
         catch (System.Exception ex)
         {
-            FPELog.Warn($"Harmony PatchAll failed: {ex.ToString()}");
+            if (FpeDebug.Enabled) ctx.Log?.Warn("AddComponentToPanel failed: " + ex.Message);
         }
 
-
-
-        // Optional: if the API provides AddComponentToPanel, use it to prime the behaviour instance
-        // Otherwise, our OnShow patch attaches this component on-demand.
-        // Try to call ctx.AddComponentToPanel<FourPersonPartyLogic>(path) if available
-        try
-        {
-            var method = ctx.GetType().GetMethod("AddComponentToPanel");
-            if (method != null)
-            {
-                FPELog.Info("Attempting AddComponentToPanel: UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
-                var generic = method.MakeGenericMethod(typeof(FourPersonPartyLogic));
-                var logicObj = generic.Invoke(ctx, new object[] { "UI Root/ExpeditionPanel/ExpeditionMainPanelNew" });
-                var logic = logicObj as FourPersonPartyLogic;
-                if (logic != null)
-                {
-                    logic.MaxPartySize = FourPersonConfig.MaxPartySize;
-                    FPELog.Info("AddComponentToPanel succeeded; logic attached.");
-                }
-                else
-                {
-                    FPELog.Info("AddComponentToPanel returned null; will attach on OnShow.");
-                }
-            }
-        }
-        catch (System.Exception ex) { FPELog.Info($"AddComponentToPanel failed: {ex.Message}"); }
-
-        FPELog.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
+        ctx.Log?.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
     }
 }

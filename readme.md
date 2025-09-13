@@ -26,13 +26,11 @@ Simply start a new expedition as like normal. The party selection window will al
 
 *   **Character Positioning (Minor Visual Bug)**: While efforts have been made to correctly position the characters in combat, there are some minor visual overlaps or slightly off-center placements depending on screen resolution or specific combat scenarios. This is a known visual bug and does not affect gameplay.
 *   **UI panels not showing the third or fourth party member**: There are still some panels I haven't gotten to patching and will be done in a future update.
-*   **Saving and exiting while a dialog hasn't been cleared**: If the game saves and exits while the radio communication with the party is active loading back into the save will have one party member appear in the shelter. Will be fixed in V0.8
 
 ### Future Plans (TODO for v0.8+)
 
 *   A more comprehensive overhaul of character positioning in combat to ensure optimal visual alignment across all combat scenarios.
 *   Updates to all panels that show XP gain.
-*   Fix saving and exiting consistency.
 
 ### Credits
 
