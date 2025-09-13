@@ -58,6 +58,12 @@
   <ItemGroup>
     <Compile Include="CombatPatches\CombatPatches.cs" />
     <Compile Include="CombatPatches\DialogueDebug.cs" />
+    <!-- Debug patches temporarily disabled to stabilize load -->
+    <!-- <Compile Include="DebugPatches\ExplorationManager_RadioDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationManager_SaveLoadDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ObjRadio_DebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationParty_StateDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationParty_Awake_DebugPatch.cs" /> -->
     <Compile Include="LoadoutManager\FourPersonPartyLogic.cs" />
     <Compile Include="CreateTeam\ManagerPatches.cs" />
     <Compile Include="CreateTeam\PanelPatches.cs" />
@@ -72,6 +78,8 @@
     <Compile Include="SavePatches\AddMemberToParty.cs" />
     <Compile Include="SavePatches\FixOnLoad_AwayFlags.cs" />
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
+    <!-- Temporarily disable radio timer save patch until boundary is found -->
+    <!-- <Compile Include="SavePatches\RadioTimerSavePatch.cs" /> -->
     <Compile Include="UI\ReturnSummaryFour.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

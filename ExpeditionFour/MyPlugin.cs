@@ -12,7 +12,7 @@ public class MyPlugin : IModPlugin
     public void Start(IPluginContext ctx)
     {
         // Read configurable party size (default 4)
-        FourPersonConfig.MaxPartySize = Mathf.Max(2, ctx.Settings.GetInt("maxPartySize", 4));
+        FourPersonConfig.MaxPartySize = 4; // Possible in the future to make this more. For now hard codded just like the game
 
         // Apply patches
         var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");

@@ -38,8 +38,22 @@ public static class ExplorationManager_SaveLoad_Postfix
             {
                 if (fm != null && fm.isAway && !assigned.Contains(fm))
                 {
-                    var pm = __instance.AddMemberToParty(firstPartyId);
-                    if (pm != null) pm.person = fm; // bind the person back to the member
+                    FPELog.Warn($"[FPE/TRACE] PostLoadRepair: Adding missing away member to party: {fm.firstName}");
+                    PartyMember pm = null;
+                    try { pm = __instance.AddMemberToParty(firstPartyId); }
+                    catch (System.Exception e)
+                    {
+                        FPELog.Warn($"[FPE/TRACE] PostLoadRepair: AddMemberToParty threw: {e}");
+                    }
+                    if (pm != null)
+                    {
+                        pm.person = fm; // bind the person back to the member
+                        FPELog.Warn($"[FPE/TRACE] PostLoadRepair: Added {fm.firstName} to party #{firstPartyId}");
+                    }
+                    else
+                    {
+                        FPELog.Warn($"[FPE/TRACE] PostLoadRepair: Could not add {fm.firstName} — party may be full.");
+                    }
                 }
             }
         }

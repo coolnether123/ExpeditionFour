@@ -1,0 +1,11 @@
+{
+  "id": "com.coolnether123.fourpersonexpeditions",
+  "name": "Four Person Expeditions",
+  "version": "1.0.0",
+  "authors": ["Coolnether123"],
+  "description": "Expands expedition parties to 4, adds sequential selection UI, per-member loadouts, and corrects resource calculations for all selected members. WIP",
+  "dependsOn": ["com.harmony.0harmony"],
+  "tags": ["Gameplay"],
+  "website": "https://github.com/coolnether123/ExpeditionFour"
+}
+

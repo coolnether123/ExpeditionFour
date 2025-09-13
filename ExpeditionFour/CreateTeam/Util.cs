@@ -11,8 +11,14 @@ internal static class MMLogger
 
 internal static class FPELog
 {
-    public static void Info(string msg) { MMLog.Write("[FourPersonExpeditions] " + msg); }
-    public static void Warn(string msg) { MMLog.Write("[FourPersonExpeditionsWarning] " + msg); }
+
+    public static void Info(string msg) { 
+        MMLog.Write("[FourPersonExpeditions] " + msg); 
+    }
+    public static void Warn(string msg) { 
+        MMLog.Write("[FourPersonExpeditionsWarning] " + msg); // Commenting out logging for v0.7 pre-release
+    }
+
 }
 
 internal static class UICloneUtil
