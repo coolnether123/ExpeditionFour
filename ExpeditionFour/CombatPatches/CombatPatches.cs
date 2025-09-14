@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -186,7 +186,8 @@ namespace FourPersonExpeditions.CombatFixes
             int startCount = bars.Count;
             for (int i = startCount; i < requiredCount; i++)
             {
-                var cloneGo = UnityEngine.Object.Instantiate(template.gameObject, root);
+                var cloneGo = UnityEngine.Object.Instantiate(template.gameObject);   
+                cloneGo.transform.SetParent(root);
                 cloneGo.name = $"{template.name}_FPE_Clone_{i}";
                 int step = i - (startCount - 1);
                 cloneGo.transform.localPosition = template.transform.localPosition + (posStep * step);

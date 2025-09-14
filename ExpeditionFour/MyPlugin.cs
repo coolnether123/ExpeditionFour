@@ -30,25 +30,7 @@ public class MyPlugin : IModPlugin
 
 
 
-        // Attach our logic to the Expedition panel if it already exists; otherwise, UI patches will attach on OnShow.
-        try
-        {
-            if (FpeDebug.Enabled) ctx.Log?.Info("Attempting AddComponentToPanel: UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
-            var logic = ctx.AddComponentToPanel<FourPersonPartyLogic>("UI Root/ExpeditionPanel/ExpeditionMainPanelNew");
-            if (logic != null)
-            {
-                logic.MaxPartySize = FourPersonConfig.MaxPartySize;
-                if (FpeDebug.Enabled) ctx.Log?.Info("AddComponentToPanel succeeded; logic attached.");
-            }
-            else
-            {
-                if (FpeDebug.Enabled) ctx.Log?.Info("FindPanel failed; will attach on OnShow.");
-            }
-        }
-        catch (System.Exception ex)
-        {
-            if (FpeDebug.Enabled) ctx.Log?.Warn("AddComponentToPanel failed: " + ex.Message);
-        }
+        
 
         ctx.Log?.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
     }

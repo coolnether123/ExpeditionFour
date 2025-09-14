@@ -1,9 +1,9 @@
 {
   "id": "com.coolnether123.fourpersonexpeditions",
   "name": "Four Person Expeditions",
-  "version": "1.0.0",
+  "version": "0.7.0",
   "authors": ["Coolnether123"],
-  "description": "Expands expedition parties to 4, adds sequential selection UI, per-member loadouts, and corrects resource calculations for all selected members. WIP",
+  "description": "Increases expedition party size to 4. Adds sequential character selection, per-member loadouts, and corrects resource calculations. Combat is adjusted for the larger party. Known issues: minor character positioning bugs in combat and some UI panels not yet updated for all members. Future plans include a combat positioning overhaul and more UI updates. WIP.",
   "dependsOn": ["com.harmony.0harmony"],
   "tags": ["Gameplay"],
   "website": "https://github.com/coolnether123/ExpeditionFour"
