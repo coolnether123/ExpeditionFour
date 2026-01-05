@@ -12,8 +12,8 @@ internal static class MMLogger
 
 internal static class FpeDebug
 {
-    // Toggle from plugin via ModSettings; defaults to false
-    public static bool Enabled = true; // changed for debugging TODO
+    // Toggle via code; keep false in release builds.
+    public static bool Enabled = false;
 }
 
 internal static class FPELog

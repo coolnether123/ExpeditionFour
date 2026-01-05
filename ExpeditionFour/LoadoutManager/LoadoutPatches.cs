@@ -6,8 +6,6 @@ using UnityEngine;
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), nameof(ExpeditionMainPanelNew.OnExtra1))]
 public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
 {
-    private static int _activeLoadoutIndex = -1;
-
     public static bool Prefix(ExpeditionMainPanelNew __instance)
     {
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
@@ -24,15 +22,15 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
                 {
                     FPELog.Info("OnExtra1 State Machine: Route confirmed. Starting loadout sequence.");
                     // Find the very first selected member to start with.
-                    _activeLoadoutIndex = logic.SelectedMemberIndices.FindIndex(idx => idx != -1);
-                    if (_activeLoadoutIndex == -1)
+                    logic.ActiveLoadoutIndex = logic.SelectedMemberIndices.FindIndex(idx => idx != -1);
+                    if (logic.ActiveLoadoutIndex == -1)
                     {
                         FPELog.Info("No members selected. Finalizing immediately.");
                         tr.Method("ConfirmExpeditionSettings").GetValue();
                     }
                     else
                     {
-                        ShowLoadoutForSlot(__instance, logic, _activeLoadoutIndex, true);
+                        ShowLoadoutForSlot(__instance, logic, logic.ActiveLoadoutIndex, true);
                     }
                 }
                 return false;
@@ -40,7 +38,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             case "LoadoutMember1":
             case "LoadoutMember2":
                 int nextSlot = -1;
-                for (int i = _activeLoadoutIndex + 1; i < logic.MaxPartySize; i++)
+                for (int i = logic.ActiveLoadoutIndex + 1; i < logic.MaxPartySize; i++)
                 {
                     if (logic.SelectedMemberIndices[i] != -1)
                     {
@@ -51,9 +49,9 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
 
                 if (nextSlot != -1)
                 {
-                    _activeLoadoutIndex = nextSlot;
-                    FPELog.Info($"Advancing to next loadout slot: {_activeLoadoutIndex}");
-                    ShowLoadoutForSlot(__instance, logic, _activeLoadoutIndex, false);
+                    logic.ActiveLoadoutIndex = nextSlot;
+                    FPELog.Info($"Advancing to next loadout slot: {logic.ActiveLoadoutIndex}");
+                    ShowLoadoutForSlot(__instance, logic, logic.ActiveLoadoutIndex, false);
                 }
                 else
                 {

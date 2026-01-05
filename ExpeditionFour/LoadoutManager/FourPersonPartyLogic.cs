@@ -13,6 +13,7 @@ public class FourPersonPartyLogic : MonoBehaviour
     public List<int> SelectedMemberIndices = new List<int>();
     public List<int> HighlightedIndices = new List<int>();
     public int ActiveSelectionSlot = 0;
+    public int ActiveLoadoutIndex = -1;
     public bool isInitialized = false;
 
     // --- Map Panel State ---
@@ -36,6 +37,7 @@ public class FourPersonPartyLogic : MonoBehaviour
     public void ResetState()
     {
         ActiveSelectionSlot = 0;
+        ActiveLoadoutIndex = -1;
         mapScreenPage = 0; // Reset page on show
         EnsureStateListsSize();
         for (int i = 0; i < MaxPartySize; i++)
@@ -94,4 +96,9 @@ public class FourPersonPartyLogic : MonoBehaviour
     }
 }
 
-public static class FourPersonConfig { public static int MaxPartySize = 4; }
+public static class FourPersonConfig
+{
+    public const int MaxPartySize = 4;
+    // Future expansion (when UI supports it):
+    // public static int MaxPartySize = 4;
+}

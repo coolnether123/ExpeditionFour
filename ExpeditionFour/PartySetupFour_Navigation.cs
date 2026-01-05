@@ -17,19 +17,7 @@ public static class ExpeditionPartySetup_NextMember_Patch
         int activeSlot = logic.ActiveSelectionSlot;
         int currentIndex = logic.HighlightedIndices[activeSlot];
 
-        // Find the next available person or "Nobody"
-        int nextAvailableIndex = currentIndex;
-        for (int i = 1; i <= elig.Count + 1; i++)
-        {
-            int nextIndex = (currentIndex + i) % (elig.Count + 1);
-            if (nextIndex == elig.Count) nextIndex = -1; // Wraps to "Nobody"
-
-            if (!logic.IsIndexSelected(nextIndex))
-            {
-                nextAvailableIndex = nextIndex;
-                break;
-            }
-        }
+        int nextAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, 1);
 
         logic.HighlightedIndices[activeSlot] = nextAvailableIndex;
         FPELog.Info($"NextMember: Highlight for slot {activeSlot} set to index {nextAvailableIndex}.");
@@ -56,19 +44,7 @@ public static class ExpeditionPartySetup_PreviousMember_Patch
         int activeSlot = logic.ActiveSelectionSlot;
         int currentIndex = logic.HighlightedIndices[activeSlot];
 
-        // Find the previous available person or "Nobody"
-        int prevAvailableIndex = currentIndex;
-        for (int i = 1; i <= elig.Count + 1; i++)
-        {
-            int prevIndex = (currentIndex - i + elig.Count + 1) % (elig.Count + 1);
-            if (prevIndex == elig.Count) prevIndex = -1; // Wraps to "Nobody"
-
-            if (!logic.IsIndexSelected(prevIndex))
-            {
-                prevAvailableIndex = prevIndex;
-                break;
-            }
-        }
+        int prevAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, -1);
 
         logic.HighlightedIndices[activeSlot] = prevAvailableIndex;
         FPELog.Info($"PreviousMember: Highlight for slot {activeSlot} set to index {prevAvailableIndex}.");
@@ -76,5 +52,20 @@ public static class ExpeditionPartySetup_PreviousMember_Patch
         // Just tell the UI to redraw.
         __instance.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
         return false; // Skip vanilla
+    }
+}
+
+internal static class PartySetupNavigationUtil
+{
+    public static int FindNextAvailableIndex(int currentIndex, int eligibleCount, FourPersonPartyLogic logic, int direction)
+    {
+        int count = eligibleCount + 1; // +1 for "Nobody"
+        for (int i = 1; i <= count; i++)
+        {
+            int idx = (currentIndex + i * direction + count) % count;
+            if (idx == eligibleCount) idx = -1; // Wrap to "Nobody"
+            if (!logic.IsIndexSelected(idx)) return idx;
+        }
+        return currentIndex;
     }
 }

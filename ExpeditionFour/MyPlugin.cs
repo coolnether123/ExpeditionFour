@@ -7,21 +7,11 @@ public class MyPlugin : IModPlugin
 {
     public void Initialize(IPluginContext ctx)
     {
-        // Configure tracing from settings so we can turn noisy logs on/off
-        try
-        {
-            bool trace = ctx?.Settings != null ? ctx.Settings.GetBool("trace", false) : false;
-            FpeDebug.Enabled = trace;
-        }
-        catch { FpeDebug.Enabled = false; }
     }
 
     public void Start(IPluginContext ctx)
     {
-        // Read configurable party size (default 4, clamped >= 2)
-        int configured = 4;
-        try { configured = ctx?.Settings != null ? ctx.Settings.GetInt("maxPartySize", 4) : 4; } catch { configured = 4; }
-        FourPersonConfig.MaxPartySize = Mathf.Max(2, configured);
+        // Hard cap until UI support expands beyond 4.
 
         // Apply patches
         var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");

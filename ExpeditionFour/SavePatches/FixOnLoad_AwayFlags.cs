@@ -130,6 +130,9 @@ namespace ExpeditionFour.SavePatches
                     {
                         var em = ExplorationManager.Instance;
                         var grid = ShelterRoomGrid.Instance;
+                        var encounter = EncounterManager.Instance;
+                        if (encounter != null && encounter.EncounterInProgress)
+                            continue;
                         bool atShelter = true;
                         if (grid != null)
                         {
@@ -147,9 +150,18 @@ namespace ExpeditionFour.SavePatches
                             if (nodes == null || nodes.Count == 0) nodes = em.offScreenNodes;
                             if (nodes != null && nodes.Count > 0)
                             {
-                                var idx = Mathf.Clamp(nodeIndex % nodes.Count, 0, nodes.Count - 1);
-                                person.transform.position = nodes[idx].transform.position;
-                                nodeIndex++;
+                                for (int n = 0; n < nodes.Count; n++)
+                                {
+                                    var idx = (nodeIndex + n) % nodes.Count;
+                                    var candidate = nodes[idx];
+                                    if (candidate == null) continue;
+                                    if (!IsNodeOccupied(candidate, person))
+                                    {
+                                        person.transform.position = candidate.transform.position;
+                                        nodeIndex = idx + 1;
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
@@ -158,6 +170,21 @@ namespace ExpeditionFour.SavePatches
             }
 
             FPELog.Info($"[FPE/TRACE] PARTY POST-FIX: {FpeDebugFmt.PartyLine(__instance)}");
+        }
+
+        private static bool IsNodeOccupied(GameObject node, FamilyMember exclude)
+        {
+            if (node == null) return true;
+            var fmList = FamilyManager.Instance != null ? FamilyManager.Instance.GetAllFamilyMembers() : null;
+            if (fmList == null) return false;
+            const float minDistSq = 0.25f;
+            foreach (var fm in fmList)
+            {
+                if (fm == null || fm == exclude || fm.transform == null) continue;
+                if ((fm.transform.position - node.transform.position).sqrMagnitude <= minDistSq)
+                    return true;
+            }
+            return false;
         }
     }
 

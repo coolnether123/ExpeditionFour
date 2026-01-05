@@ -51,7 +51,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CombatPatches\CombatPatches.cs" />
-    <Compile Include="CombatPatches\DialogueDebug.cs" />
     <!-- Debug patches temporarily disabled to stabilize load -->
     <!-- <Compile Include="DebugPatches\ExplorationManager_RadioDebugPatches.cs" /> -->
     <!-- <Compile Include="DebugPatches\ExplorationManager_SaveLoadDebugPatches.cs" /> -->
@@ -59,7 +58,6 @@
     <!-- <Compile Include="DebugPatches\ExplorationParty_StateDebugPatches.cs" /> -->
     <!-- <Compile Include="DebugPatches\ExplorationParty_Awake_DebugPatch.cs" /> -->
     <Compile Include="LoadoutManager\FourPersonPartyLogic.cs" />
-    <Compile Include="CreateTeam\ManagerPatches.cs" />
     <Compile Include="CreateTeam\PanelPatches.cs" />
     <Compile Include="LoadoutManager\LoadoutController.cs" />
     <Compile Include="LoadoutManager\LoadoutPatches.cs" />
