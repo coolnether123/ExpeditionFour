@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
+using ModAPI.UI;
 
 namespace FourPersonExpeditions.MapPatches
 {

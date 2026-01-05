@@ -96,7 +96,8 @@ namespace FourPersonExpeditions.CombatFixes
             int startCount = list.Count;
             for (int i = startCount; i < target; i++)
             {
-                var cloneGo = UnityEngine.Object.Instantiate(last.gameObject, parent);
+                var cloneGo = UnityEngine.Object.Instantiate(last.gameObject);
+                cloneGo.transform.SetParent(parent);
                 cloneGo.name = $"{last.name}_FPE_Clone_{i}";
                 int step = i - (startCount - 1);
                 Vector3 calculatedPosition = last.transform.localPosition + (posStep * step);

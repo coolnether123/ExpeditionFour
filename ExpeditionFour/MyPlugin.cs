@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using ModAPI.Core;
 
 // Plugin entry. Applies Harmony patches and seeds config.
 public class MyPlugin : IModPlugin

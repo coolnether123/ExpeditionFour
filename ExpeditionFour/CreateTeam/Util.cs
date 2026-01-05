@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using ModAPI.Core;
 
 internal static class MMLogger
 {
@@ -12,7 +13,7 @@ internal static class MMLogger
 internal static class FpeDebug
 {
     // Toggle from plugin via ModSettings; defaults to false
-    public static bool Enabled = false;
+    public static bool Enabled = true; // changed for debugging TODO
 }
 
 internal static class FPELog
