@@ -208,7 +208,8 @@ public static class ExpeditionPartySetup_UpdatePage_Patch
         }
 
         bool active = (slotIndex == logic.ActiveSelectionSlot);
-        int hi = 20, lo = 10;
+        int hi = FourPersonUIPositions.CombatUIDepthHigh;
+        int lo = FourPersonUIPositions.CombatUIDepthLow;
         if (avatar.name != null) avatar.name.depth = active ? hi : lo;
         if (avatar.avatar != null) avatar.avatar.depth = active ? hi : lo;
         if (avatar.polaroid != null) avatar.polaroid.depth = active ? (hi - 1) : (lo - 1);

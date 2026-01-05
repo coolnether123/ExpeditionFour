@@ -175,13 +175,14 @@ namespace ExpeditionFour.SavePatches
         private static bool IsNodeOccupied(GameObject node, FamilyMember exclude)
         {
             if (node == null) return true;
-            var fmList = FamilyManager.Instance != null ? FamilyManager.Instance.GetAllFamilyMembers() : null;
-            if (fmList == null) return false;
+            var fmList = FamilyManager.Instance?.GetAllFamilyMembers();
+            if (fmList == null || fmList.Count == 0) return false;
+            var nodePos = node.transform.position;
             const float minDistSq = 0.25f;
             foreach (var fm in fmList)
             {
                 if (fm == null || fm == exclude || fm.transform == null) continue;
-                if ((fm.transform.position - node.transform.position).sqrMagnitude <= minDistSq)
+                if ((fm.transform.position - nodePos).sqrMagnitude <= minDistSq)
                     return true;
             }
             return false;
@@ -196,6 +197,7 @@ namespace ExpeditionFour.SavePatches
     {
         static void Prefix(ExplorationManager __instance, SaveData data)
         {
+            if (!FpeDebug.Enabled) return;
             FPELog.Info($"[FPE/TRACE] ExplorationManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
             var tr = Traverse.Create(__instance);
             float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
@@ -208,6 +210,7 @@ namespace ExpeditionFour.SavePatches
 
         static void Postfix(ExplorationManager __instance, SaveData data)
         {
+            if (!FpeDebug.Enabled) return;
             try
             {
                 var emTr = Traverse.Create(__instance);
@@ -274,6 +277,7 @@ namespace ExpeditionFour.SavePatches
     {
         static void Postfix(ExplorationParty __instance)
         {
+            if (!FpeDebug.Enabled) return;
             FPELog.Info($"[FPE/TRACE] RECALL: {FpeDebugFmt.PartyLine(__instance)}");
         }
     }
@@ -284,6 +288,7 @@ namespace ExpeditionFour.SavePatches
     {
         static void Postfix(Job_GoToLocation __instance)
         {
+            if (!FpeDebug.Enabled) return;
             try
             {
                 var ch = AccessTools.Field(typeof(Job), "character").GetValue(__instance) as FamilyMember;

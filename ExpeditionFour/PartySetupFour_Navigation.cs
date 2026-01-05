@@ -62,7 +62,8 @@ internal static class PartySetupNavigationUtil
         int count = eligibleCount + 1; // +1 for "Nobody"
         for (int i = 1; i <= count; i++)
         {
-            int idx = (currentIndex + i * direction + count) % count;
+            int rawIdx = currentIndex + (i * direction);
+            int idx = ((rawIdx % count) + count) % count;
             if (idx == eligibleCount) idx = -1; // Wrap to "Nobody"
             if (!logic.IsIndexSelected(idx)) return idx;
         }

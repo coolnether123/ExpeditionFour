@@ -37,7 +37,8 @@ namespace ExpeditionFour.SavePatches
             }
             catch (System.Exception ex)
             {
-                FPELog.Warn($"[FPE] AddMemberToParty_Prefix failed: {ex}");
+                FPELog.Warn($"[FPE] AddMemberToParty_Prefix failed: {ex.Message}");
+                FPELog.Warn($"[FPE] Stack trace: {ex.StackTrace}");
                 __result = null;
                 return false;
             }

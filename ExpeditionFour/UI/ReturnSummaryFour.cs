@@ -98,22 +98,28 @@ namespace ExpeditionFour.UI
             }
 
             // --- Layout Logic ---
-            float xLeft = -260f, xRight = 160f, yTop = 75f, yBottom = yTop - 160f;
-            const float X_OFFSET = 45f;
+            float xLeft = FourPersonUIPositions.EncounterSummaryLeftX;
+            float xRight = FourPersonUIPositions.EncounterSummaryRightX;
+            float yTop = FourPersonUIPositions.EncounterSummaryTopY;
+            float yBottom = yTop - FourPersonUIPositions.EncounterSummaryVerticalSpacing;
+            float xOffset = FourPersonUIPositions.EncounterSummaryXOffset;
 
             if (targetBlockCount <= 2)
             {
                 for (int i = 0; i < targetBlockCount; i++)
-                    allBlocks[i].transform.localPosition = new Vector3(-50f, yTop - (i * 160f), 0);
+                    allBlocks[i].transform.localPosition = new Vector3(
+                        -50f,
+                        yTop - (i * FourPersonUIPositions.EncounterSummaryVerticalSpacing),
+                        0);
             }
             else
             {
                 var targets = new Vector3[]
                 {
-                    new Vector3(xLeft + X_OFFSET, yTop, 0),
-                    new Vector3(xRight + X_OFFSET, yTop, 0),
-                    new Vector3(xLeft + X_OFFSET, yBottom, 0),
-                    new Vector3(xRight + X_OFFSET, yBottom, 0)
+                    new Vector3(xLeft + xOffset, yTop, 0),
+                    new Vector3(xRight + xOffset, yTop, 0),
+                    new Vector3(xLeft + xOffset, yBottom, 0),
+                    new Vector3(xRight + xOffset, yBottom, 0)
                 };
                 for (int i = 0; i < targetBlockCount && i < 4; i++)
                     allBlocks[i].transform.localPosition = targets[i];

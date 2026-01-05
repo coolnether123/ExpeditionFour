@@ -64,6 +64,7 @@
     <Compile Include="MapPatches\PartyMapPanel_Hooks.cs" />
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
+    <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="PartySetupFour_Navigation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

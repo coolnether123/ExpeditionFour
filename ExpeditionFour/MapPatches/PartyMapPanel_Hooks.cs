@@ -74,12 +74,12 @@ namespace FourPersonExpeditions.MapPatches
             float leftOffset = topLabelX - topLeftX;     // px between label and left chevron
             float rightOffset = topRightX - topLabelX;    // px between label and right chevron
 
-            // ---------- 3) Set a hardcoded anchor Y for the new paging arrows ----------
-            float anchorY = -330f;
-            float yNudge = -10f;   
+            // ---------- 3) Map paging anchor positions ----------
+            float anchorY = FourPersonUIPositions.MapPagingAnchorY;
+            float yNudge = FourPersonUIPositions.MapPagingYNudge;
 
             // Anchor the X position to the Party count label:
-            float indicatorX = -464.0f;                // X position of PartyMember1Portrait
+            float indicatorX = FourPersonUIPositions.MapPageIndicatorX; // X position of PartyMember1Portrait
             Vector3 indicatorPos = new Vector3(indicatorX, anchorY + yNudge, 0f);
             Vector3 leftPos = new Vector3(indicatorX - leftOffset, anchorY + yNudge, 0f);
             Vector3 rightPos = new Vector3(indicatorX + rightOffset, anchorY + yNudge, 0f);
@@ -187,9 +187,9 @@ namespace FourPersonExpeditions.MapPatches
                 member2_go.SetActive(false);
                 if (logic.isMapUIInitialized)
                 {
-                    logic.pageLeftArrow.SetActive(false);
-                    logic.pageRightArrow.SetActive(false);
-                    logic.pageIndicatorLabel.gameObject.SetActive(false);
+                    if (logic.pageLeftArrow != null) logic.pageLeftArrow.SetActive(false);
+                    if (logic.pageRightArrow != null) logic.pageRightArrow.SetActive(false);
+                    if (logic.pageIndicatorLabel != null) logic.pageIndicatorLabel.gameObject.SetActive(false);
                 }
             }
             else
@@ -205,12 +205,16 @@ namespace FourPersonExpeditions.MapPatches
                     int memberCount = party.membersCount;
                     int maxPages = Mathf.Max(1, Mathf.CeilToInt(memberCount / 2.0f));
 
-                    logic.pageIndicatorLabel.text = $"{logic.mapScreenPage + 1}/{maxPages}";
+                    if (logic.pageIndicatorLabel != null)
+                        logic.pageIndicatorLabel.text = $"{logic.mapScreenPage + 1}/{maxPages}";
 
                     bool showPaging = maxPages > 1;
-                    logic.pageLeftArrow.SetActive(showPaging && logic.mapScreenPage > 0);
-                    logic.pageRightArrow.SetActive(showPaging && logic.mapScreenPage < maxPages - 1);
-                    logic.pageIndicatorLabel.gameObject.SetActive(showPaging);
+                    if (logic.pageLeftArrow != null)
+                        logic.pageLeftArrow.SetActive(showPaging && logic.mapScreenPage > 0);
+                    if (logic.pageRightArrow != null)
+                        logic.pageRightArrow.SetActive(showPaging && logic.mapScreenPage < maxPages - 1);
+                    if (logic.pageIndicatorLabel != null)
+                        logic.pageIndicatorLabel.gameObject.SetActive(showPaging);
                 }
             }
 
