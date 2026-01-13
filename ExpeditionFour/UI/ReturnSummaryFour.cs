@@ -2,127 +2,130 @@
 using System.Linq;
 using HarmonyLib;
 using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
+using ModAPI.UI;
 
-namespace ExpeditionFour.UI
+namespace FourPersonExpeditions.UI
 {
-    [HarmonyPatch(typeof(ExplorationParty), "Update_Returned_ShowExperienceGained")]
+    /// <summary>
+    /// Patches the expedition return summary screen to correctly display up to four members.
+    /// It ensures the internal character arrays are expanded to prevent crashes and properly positions the portraits.
+    /// </summary>
+    [HarmonyPatch(typeof(ExplorationSummaryPanel), "OnShow")]
     internal static class ReturnSummaryFour
     {
-        static void Postfix(ExplorationParty __instance)
+        static void Prefix(ExplorationSummaryPanel __instance)
         {
-            if (__instance == null || __instance.state != ExplorationParty.ePartyState.ReturnedShowExperienceGained) return;
+            if (__instance == null) return;
 
-            var root = GameObject.Find("UI Root");
-            if (root == null) return;
+            // Access the private fields: characterSummaries (List) and m_playerCharacters (Array)
+            if (!Safe.TryGetField(__instance, "characterSummaries", out List<EncounterSummaryCharacter> summaries) || summaries == null) return;
+            if (!Safe.TryGetField(__instance, "m_playerCharacters", out EncounterCharacter[] characters) || characters == null) return;
 
-            var activeBlocks = root.GetComponentsInChildren<EncounterSummaryCharacter>(true)
-                                   .Where(b => b.gameObject.activeInHierarchy)
-                                   .ToList();
-
-            EncounterSummaryCharacter template = activeBlocks.Count > 0
-                ? activeBlocks[0]
-                : root.GetComponentsInChildren<EncounterSummaryCharacter>(true).FirstOrDefault();
-
-            if (template == null) return;
-
-            var parent = template.transform.parent;
-            if (parent != null)
+            // Ensure we have 4 slots in both the summary list and the character array to prevent out-of-bounds crashes in vanilla code.
+            if (summaries.Count < 4 || characters.Length < 4)
             {
-                var grid = parent.GetComponent<UIGrid>(); if (grid) grid.enabled = false;
-                var table = parent.GetComponent<UITable>(); if (table) table.enabled = false;
-            }
-
-            var pms = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers").GetValue(__instance) as List<PartyMember>;
-            var members = (pms ?? new List<PartyMember>()).Where(pm => pm != null && pm.person != null).ToList();
-            int targetBlockCount = members.Count;
-
-            var allBlocks = new List<EncounterSummaryCharacter>(activeBlocks);
-
-            UI2DSprite templateAvatarSprite = template.GetComponentInChildren<UI2DSprite>(true);
-            Material baseMaterial = (templateAvatarSprite != null) ? templateAvatarSprite.material : null;
-
-            if (baseMaterial == null)
-            {
-                FPELog.Warn("[FPE/UI] Could not find a base material from the template avatar sprite. Colors will fail.");
-                return;
-            }
-
-            while (allBlocks.Count < targetBlockCount)
-            {
-                var cloneGo = Object.Instantiate(template.gameObject);
-                cloneGo.transform.SetParent(parent);
-                cloneGo.name = template.gameObject.name + "_FPE_Clone_" + allBlocks.Count;
-                cloneGo.transform.localScale = Vector3.one;
-                cloneGo.SetActive(true);
-                var comp = cloneGo.GetComponent<EncounterSummaryCharacter>();
-                if (comp != null)
+                FPELog.Info($"ReturnSummary: Expanding UI containers. Summaries: {summaries.Count}->4, Characters: {characters.Length}->4");
+                
+                var templateSummary = summaries[0];
+                var summaryList = summaries; // Already re-assigned by TryGetField? No, it's a ref.
+                
+                var characterList = characters.ToList();
+                
+                while (summaryList.Count < 4)
                 {
-                    UI2DSprite clonedAvatarSprite = comp.GetComponentInChildren<UI2DSprite>(true);
-                    if (clonedAvatarSprite != null)
-                    {
-                        // --- THE DEFINITIVE FIX ---
-                        // Create a NEW INSTANCE of the material for each clone.
-                        // This prevents all sprites from sharing the same material and overwriting each other's colors.
-                        // This is necessary for older Unity versions like 5.3.
-                        clonedAvatarSprite.material = new Material(baseMaterial);
-                    }
-                    allBlocks.Add(comp);
+                    var cloneGo = UIHelper.Clone(templateSummary.gameObject, templateSummary.transform.parent);
+                    cloneGo.name = templateSummary.name + "_FPE_" + summaryList.Count;
+                    
+                    var newSummary = cloneGo.GetComponent<EncounterSummaryCharacter>();
+                    var newCharacter = cloneGo.GetComponentInChildren<EncounterCharacter>(true);
+                    
+                    if (newSummary != null) summaryList.Add(newSummary);
+                    if (newCharacter != null) characterList.Add(newCharacter);
                 }
-            }
 
-            for (int i = targetBlockCount; i < allBlocks.Count; i++)
+                // Push the expanded collections back into the private fields
+                Safe.SetField(__instance, "characterSummaries", summaryList);
+                Safe.SetField(__instance, "m_playerCharacters", characterList.ToArray());
+            }
+        }
+
+        static void Postfix(ExplorationSummaryPanel __instance)
+        {
+            if (__instance == null) return;
+            if (!Safe.TryGetField(__instance, "m_party", out ExplorationParty party) || party == null) return;
+            if (!Safe.TryGetField(__instance, "characterSummaries", out List<EncounterSummaryCharacter> summaries)) return;
+            if (!Safe.TryGetField(__instance, "member_grid", out UIGrid grid) || grid == null) return;
+
+            // Fix interactive button depth (keep it in the background logic)
+            FixCloseButton(__instance.gameObject);
+
+            // Handle layout for 3-4 member parties
+            if (party.membersCount <= 2) 
             {
-                allBlocks[i].gameObject.SetActive(false);
+                grid.enabled = true;
+                return; 
             }
 
-            for (int i = 0; i < targetBlockCount; i++)
-            {
-                var block = allBlocks[i];
-                var member = members[i];
+            grid.enabled = false; // Disable vanilla grid for custom 2x2 layout
 
-                if (block == null || member == null) continue;
-
-                EncounterCharacter oldEncounterChar = AccessTools.Field(typeof(EncounterSummaryCharacter), "character").GetValue(block) as EncounterCharacter;
-                if (oldEncounterChar != null && oldEncounterChar.gameObject != null) Object.Destroy(oldEncounterChar.gameObject);
-
-                GameObject charGo = new GameObject($"EncounterCharacter_{member.person.firstName}");
-                charGo.transform.SetParent(block.transform);
-                EncounterCharacter encounterChar = charGo.AddComponent<EncounterCharacter>();
-                AccessTools.Field(typeof(EncounterSummaryCharacter), "character").SetValue(block, encounterChar);
-                encounterChar.Setup(member);
-
-                // Now that each block has a unique material instance, the game's original code will work as intended.
-                block.ShowCharacter(encounterChar, BaseStats.StatType.Perception, BaseStats.StatType.Strength);
-
-                block.gameObject.SetActive(true);
-            }
-
-            // --- Layout Logic ---
             float xLeft = FourPersonUIPositions.EncounterSummaryLeftX;
             float xRight = FourPersonUIPositions.EncounterSummaryRightX;
             float yTop = FourPersonUIPositions.EncounterSummaryTopY;
             float yBottom = yTop - FourPersonUIPositions.EncounterSummaryVerticalSpacing;
-            float xOffset = FourPersonUIPositions.EncounterSummaryXOffset;
 
-            if (targetBlockCount <= 2)
+            var targets = new Vector3[]
             {
-                for (int i = 0; i < targetBlockCount; i++)
-                    allBlocks[i].transform.localPosition = new Vector3(
-                        -50f,
-                        yTop - (i * FourPersonUIPositions.EncounterSummaryVerticalSpacing),
-                        0);
-            }
-            else
+                new Vector3(xLeft, yTop, 0),
+                new Vector3(xRight, yTop, 0),
+                new Vector3(xLeft, yBottom, 0),
+                new Vector3(xRight, yBottom, 0)
+            };
+
+            for (int i = 0; i < summaries.Count; i++)
             {
-                var targets = new Vector3[]
+                var block = summaries[i];
+                if (block == null) continue;
+                
+                if (i < party.membersCount)
                 {
-                    new Vector3(xLeft + xOffset, yTop, 0),
-                    new Vector3(xRight + xOffset, yTop, 0),
-                    new Vector3(xLeft + xOffset, yBottom, 0),
-                    new Vector3(xRight + xOffset, yBottom, 0)
-                };
-                for (int i = 0; i < targetBlockCount && i < 4; i++)
-                    allBlocks[i].transform.localPosition = targets[i];
+                    block.gameObject.SetActive(true);
+                    block.transform.localPosition = targets[i % 4];
+                    
+                    // Boost depth to ensure portraits appear on top of the paper background
+                    UIHelper.SetChildDepths(block.transform, 1000 + (i * 10));
+
+                    // Use unique material instances for the clones to prevent avatar color issues
+                    if (block.name.Contains("_FPE_"))
+                    {
+                        var sprite = block.GetComponentInChildren<UI2DSprite>(true);
+                        if (sprite != null && sprite.material != null && !sprite.material.name.Contains("(Clone)"))
+                        {
+                            sprite.material = new Material(sprite.material);
+                        }
+                    }
+                }
+                else
+                {
+                    block.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        private static void FixCloseButton(GameObject panelGo)
+        {
+            var candidates = panelGo.GetComponentsInChildren<UIButton>(true)
+                                    .Where(b => b.name == "X" || b.name.ToLower().Contains("close"))
+                                    .ToList();
+
+            foreach (var btn in candidates)
+            {
+                var widgets = btn.GetComponentsInChildren<UIWidget>(true);
+                foreach (var w in widgets) w.depth = 8000;
+
+                var col = btn.GetComponent<BoxCollider>();
+                if (col != null) col.center = new Vector3(col.center.x, col.center.y, -10f);
             }
         }
     }

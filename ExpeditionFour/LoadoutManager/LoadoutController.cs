@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using System.Linq;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
 
 public class LoadoutController : MonoBehaviour
 {
@@ -23,9 +25,7 @@ public class LoadoutController : MonoBehaviour
             return;
         }
 
-        // *** FIX: Use Traverse to access the private m_displayedMember field ***
-        var displayedMember = Traverse.Create(_loadoutPanel).Field("m_displayedMember").GetValue<PartyMember>();
-        if (displayedMember == null)
+        if (!Safe.TryGetField(_loadoutPanel, "m_displayedMember", out PartyMember displayedMember))
         {
             FPELog.Warn("Could not get displayed member from Loadout panel.");
             return;
@@ -66,7 +66,7 @@ public class LoadoutController : MonoBehaviour
         else
         {
             FPELog.Info($"Final loadout button clicked for slot {currentMemberSlot}. Finalizing expedition.");
-            Traverse.Create(_mainPanel).Method("ConfirmExpeditionSettings").GetValue();
+            Safe.InvokeMethod(_mainPanel, "ConfirmExpeditionSettings");
         }
     }
 }

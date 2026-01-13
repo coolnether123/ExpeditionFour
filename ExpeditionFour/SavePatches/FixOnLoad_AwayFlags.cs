@@ -3,10 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
 
-namespace ExpeditionFour.SavePatches
+namespace FourPersonExpeditions.SavePatches
 {
-    // Centralized helpers
+    /// <summary>
+    /// Contains formatting helpers for debug logging of mod-specific data.
+    /// </summary>
     internal static class FpeDebugFmt
     {
         public static string MemberFlags(FamilyMember m)
@@ -20,9 +24,8 @@ namespace ExpeditionFour.SavePatches
         {
             if (p == null) return "party=<null>";
             var names = new List<string>();
-            var list = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
-                                   .GetValue(p) as List<PartyMember>;
-            if (list != null)
+            
+            if (Safe.TryGetField(p, "m_partyMembers", out List<PartyMember> list) && list != null)
             {
                 foreach (var pm in list)
                 {
@@ -35,19 +38,16 @@ namespace ExpeditionFour.SavePatches
     }
 
     /// <summary>
-    /// Force-consistent "away" flags for any active expedition state on load.
-    /// This runs AFTER a party finishes SaveLoad so its m_partyMembers is populated.
+    /// Forces consistent "away" flags for all active expedition members upon loading a save.
+    /// This prevents issues where characters might appear in the shelter while logically being on an expedition.
     /// </summary>
     [HarmonyPatch(typeof(ExplorationParty), nameof(ExplorationParty.SaveLoad))]
     internal static class FixOnLoad_AwayFlags
     {
-        // States where characters MUST be away when a save is (re)loaded.
+        // States where characters MUST be flagged as "away" when a save is loaded.
         private static readonly HashSet<ExplorationParty.ePartyState> MustBeAwayStates =
             new HashSet<ExplorationParty.ePartyState>
             {
-                ExplorationParty.ePartyState.GettingReady,
-                ExplorationParty.ePartyState.LeavingShelter,
-                ExplorationParty.ePartyState.VehicleLeaving,
                 ExplorationParty.ePartyState.Traveling,
                 ExplorationParty.ePartyState.ReportingLocation,
                 ExplorationParty.ePartyState.ReportingLocationWaitUser,
@@ -66,22 +66,16 @@ namespace ExpeditionFour.SavePatches
                 ExplorationParty.ePartyState.EncounteredNPCsRequestNewEncounter,
                 ExplorationParty.ePartyState.EncounteredNPCsWaitFinished,
                 ExplorationParty.ePartyState.EncounteredNPCsAutoResolve,
-                // Open-ground encounters also occur while the party is away
                 ExplorationParty.ePartyState.OpenGroundNpcEncounterStart,
                 ExplorationParty.ePartyState.OpenGroundNpcEncounter,
                 ExplorationParty.ePartyState.OpenGroundNpcEncounterWaitUser,
                 ExplorationParty.ePartyState.OpenGroundNpcEncounterRequestNewEncounter,
                 ExplorationParty.ePartyState.OpenGroundNpcEncounterWaitFinished,
                 ExplorationParty.ePartyState.OpenGroundNpcEncounterAutoResolve,
-                // Quest encounters behave like NPC encounters
                 ExplorationParty.ePartyState.EncounteredQuestNPCs,
                 ExplorationParty.ePartyState.EncounteredQuestNPCsWaitUser,
                 ExplorationParty.ePartyState.QuestEncounterStart,
                 ExplorationParty.ePartyState.QuestEncounterWaitFinished,
-                ExplorationParty.ePartyState.VehicleReturning,
-                // *** The critical addition: EnteringShelter ***
-                ExplorationParty.ePartyState.EnteringShelter,
-                // The remaining "Returned..." screens still count as away until control actually hands back.
                 ExplorationParty.ePartyState.ReturnedShowExperienceGained,
                 ExplorationParty.ePartyState.ReturnedRequestTransferPanel,
                 ExplorationParty.ePartyState.ReturnedWaitItemTransfer
@@ -94,58 +88,53 @@ namespace ExpeditionFour.SavePatches
             var state = __instance.state;
             var mustBeAway = MustBeAwayStates.Contains(state);
 
-            // Dump state & members as loaded.
-            FPELog.Info($"[FPE/TRACE] PARTY LOAD: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Info($"Party Load Trace: {FpeDebugFmt.PartyLine(__instance)}");
 
-            // Reconcile members
-            var memberList = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
-                                        .GetValue(__instance) as List<PartyMember>;
-            if (memberList == null) return;
+            if (!Safe.TryGetField(__instance, "m_partyMembers", out List<PartyMember> memberList) || memberList == null) 
+                return;
 
-            // We'll also keep a rolling index so that, if we need to
-            // reposition characters, we can spread them across offscreen nodes.
             int nodeIndex = 0;
             foreach (var pm in memberList)
             {
                 var person = pm?.person;
                 if (person == null) continue;
 
-                // These are the authoritative values we want while a party is active.
                 if (mustBeAway)
                 {
                     if (!person.isAway || !person.finishedLeavingShelter)
                     {
-                        FPELog.Info($"[FPE/TRACE]  -> Fixing flags on {person.firstName}: was away={person.isAway}, left={person.finishedLeavingShelter}; forcing away=true,left=true (state={state})");
+                        FPELog.Info($"Party Load: Synchronizing flags for {person.firstName}. Setting away and finishedLeavingShelter to true.");
                     }
 
-                    // Ensure away/left flags and clear any outstanding jobs like vanilla OnShelterLeft().
+                    // Enforce expedition state flags and clear character job queues
                     person.isAway = true;
                     person.finishedLeavingShelter = true;
                     person.job_queue?.ForceClear();
                     person.ai_queue?.ForceClear();
 
-                    // If they spawned at/near the shelter, nudge them to an offscreen node
-                    // so they aren't visibly idling around the entrance after loading.
                     try
                     {
                         var em = ExplorationManager.Instance;
                         var grid = ShelterRoomGrid.Instance;
                         var encounter = EncounterManager.Instance;
+                        
+                        // Skip repositioning if an encounter is already in progress
                         if (encounter != null && encounter.EncounterInProgress)
                             continue;
+                            
                         bool atShelter = true;
                         if (grid != null)
                         {
-                            int cx, cy;
-                            if (grid.WorldCoordsToCellCoords(person.transform.position, out cx, out cy))
+                            if (grid.WorldCoordsToCellCoords(person.transform.position, out int cx, out int cy))
                             {
-                                // Outside area is y==0, and the first indoor row (y==1) close to hatch is also visible.
+                                // y <= 1 represents the surface and upper shelter areas visible to the user
                                 atShelter = (cy <= 1);
                             }
                         }
 
                         if (em != null && atShelter)
                         {
+                            // Shift character to an off-screen node to maintain immersion
                             var nodes = em.offScreenNodesRight;
                             if (nodes == null || nodes.Count == 0) nodes = em.offScreenNodes;
                             if (nodes != null && nodes.Count > 0)
@@ -165,18 +154,45 @@ namespace ExpeditionFour.SavePatches
                             }
                         }
                     }
-                    catch { /* best-effort repositioning only */ }
+                    catch { /* repositioning is non-critical */ }
                 }
             }
 
-            FPELog.Info($"[FPE/TRACE] PARTY POST-FIX: {FpeDebugFmt.PartyLine(__instance)}");
+            // Repair Logic: Fix parties stuck in transition states if all members are flagged 'Away'.
+            // This happens if a save occurs during transition, or due to previous mod logic forcing 'Away'.
+            bool allAway = true;
+            foreach (var pm in memberList)
+            {
+                if (pm?.person != null && !pm.person.isAway)
+                {
+                    allAway = false;
+                    break;
+                }
+            }
+
+            if (allAway)
+            {
+                if (state == ExplorationParty.ePartyState.LeavingShelter || state == ExplorationParty.ePartyState.VehicleLeaving)
+                {
+                    FPELog.Info($"Party Load Repair: Party #{__instance.id} stuck in {state} but all members are Away. Forcing state to Traveling.");
+                    Safe.SetField(__instance, "m_state", ExplorationParty.ePartyState.Traveling);
+                }
+                else if (state == ExplorationParty.ePartyState.EnteringShelter || state == ExplorationParty.ePartyState.VehicleReturning)
+                {
+                    FPELog.Info($"Party Load Repair: Party #{__instance.id} stuck in {state} but all members are Away. Forcing state to ReturnedShowExperienceGained.");
+                    Safe.SetField(__instance, "m_state", ExplorationParty.ePartyState.ReturnedShowExperienceGained);
+                }
+            }
+
+            FPELog.Info($"Party Load Trace Completion: {FpeDebugFmt.PartyLine(__instance)}");
         }
 
         private static bool IsNodeOccupied(GameObject node, FamilyMember exclude)
         {
             if (node == null) return true;
             var fmList = FamilyManager.Instance?.GetAllFamilyMembers();
-            if (fmList == null || fmList.Count == 0) return false;
+            if (fmList == null || fmList.Count == 0 || node.transform == null) return false;
+            
             var nodePos = node.transform.position;
             const float minDistSq = 0.25f;
             foreach (var fm in fmList)
@@ -189,23 +205,24 @@ namespace ExpeditionFour.SavePatches
         }
     }
 
-    // ======================= HEAVY TRACING HOOKS =======================
-
-   
-            [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.SaveLoad))]
+    /// <summary>
+    /// Provides detailed tracing for ExplorationManager SaveLoad operations when debug mode is enabled.
+    /// </summary>
+    [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.SaveLoad))]
     internal static class Trace_ExplorationManager_SaveLoad
     {
         static void Prefix(ExplorationManager __instance, SaveData data)
         {
             if (!FpeDebug.Enabled) return;
-            FPELog.Info($"[FPE/TRACE] ExplorationManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
-            var tr = Traverse.Create(__instance);
-            float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
-            float radioTimeoutTimer = tr.Field("m_radioTimeoutTimer").GetValue<float>();
-            Obj_Radio shelterRadio = tr.Method("GetShelterRadio").GetValue<Obj_Radio>(); 
+            FPELog.Info($"ExplorationManager.SaveLoad Trace ({(data?.isLoading == true ? "Loading" : "Saving")})");
+            
+            float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
+            float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
+            
+            Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
             bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
 
-            FPELog.Info($"[FPE/TRACE]   Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+            FPELog.Info($"Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
         }
 
         static void Postfix(ExplorationManager __instance, SaveData data)
@@ -213,44 +230,35 @@ namespace ExpeditionFour.SavePatches
             if (!FpeDebug.Enabled) return;
             try
             {
-                var emTr = Traverse.Create(__instance);
-                float radioWaitTimer = emTr.Field("m_radioWaitTimer").GetValue<float>();
-                float radioTimeoutTimer = emTr.Field("m_radioTimeoutTimer").GetValue<float>();
-                Obj_Radio shelterRadio = emTr.Method("GetShelterRadio").GetValue<Obj_Radio>(); 
+                float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
+                float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
+                
+                Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
                 bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
-                bool radioDialogPanelShowing = emTr.Field("m_radioDialogPanel").GetValue<RadioDialogPanel>().IsShowing();
+                
+                RadioDialogPanel panel = Safe.GetFieldOrDefault<RadioDialogPanel>(__instance, "m_radioDialogPanel", null);
+                bool radioDialogPanelShowing = panel != null && panel.IsShowing();
                 bool anyPartiesCallingIn = __instance.AnyPartiesCallingIn();
 
-                FPELog.Info($"[FPE/TRACE]   ExplorationManager State (Postfix):");
-                FPELog.Info($"[FPE/TRACE]     Radio Timers: Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}");
-                FPELog.Info($"[FPE/TRACE]     Radio Incoming Transmission: {incomingTransmission}");
-                FPELog.Info($"[FPE/TRACE]     Radio Dialog Panel Showing: {radioDialogPanelShowing}");
-                FPELog.Info($"[FPE/TRACE]     Any Parties Calling In: {anyPartiesCallingIn}");
+                FPELog.Info($"ExplorationManager State (Postfix): Timers=[{radioWaitTimer}/{radioTimeoutTimer}], Incoming=[{incomingTransmission}], DialogShowing=[{radioDialogPanelShowing}], PartiesCalling=[{anyPartiesCallingIn}]");
 
-                var partiesDict = AccessTools.Field(typeof(ExplorationManager), "m_parties")
-                                      .GetValue(__instance) as Dictionary<int, ExplorationParty>;
-                if (partiesDict != null)
+                if (Safe.TryGetField(__instance, "m_parties", out Dictionary<int, ExplorationParty> partiesDict) && partiesDict != null)
                 {
                     foreach (var kv in partiesDict)
                     {
                         var party = kv.Value;
-                        FPELog.Info($"[FPE/TRACE]   Party #{party.id} State:");
-                        FPELog.Info($"[FPE/TRACE]     State: {party.state}");
-                        FPELog.Info($"[FPE/TRACE]     Is Recalled: {party.isRecalled}");
-                        FPELog.Info($"[FPE/TRACE]     Is Returning: {party.isReturning}");
-                        FPELog.Info($"[FPE/TRACE]     Is Walking To Shelter: {party.isWalkingToShelter}");
+                        FPELog.Info($"Party #{party.id} State: State={party.state}, Recalled={party.isRecalled}, Returning={party.isReturning}, WalkingToShelter={party.isWalkingToShelter}");
 
-                        var radioParams = Traverse.Create(party).Field("m_radioParams").GetValue<ExplorationManager.RadioDialogParams>();
+                        ExplorationManager.RadioDialogParams radioParams = Safe.GetFieldOrDefault<ExplorationManager.RadioDialogParams>(party, "m_radioParams", null);
                         if (radioParams != null)
                         {
-                            FPELog.Info($"[FPE/TRACE]     Radio Params: Question='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
+                            FPELog.Info($"Radio Params: Msg='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
                         }
-                        var radioResponse = Traverse.Create(party).Field("m_radioResponse").GetValue<RadioDialogPanel.RadioResponse>();
-                        FPELog.Info($"[FPE/TRACE]     Radio Response: {radioResponse}");
+                        
+                        var radioResponse = Safe.GetFieldOrDefault(party, "m_radioResponse", default(RadioDialogPanel.RadioResponse));
+                        FPELog.Info($"Radio Response: {radioResponse}");
 
-                        var memberList = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
-                                                    .GetValue(party) as List<PartyMember>;
-                        if (memberList != null)
+                        if (Safe.TryGetField(party, "m_partyMembers", out List<PartyMember> memberList) && memberList != null)
                         {
                             foreach (var pm in memberList)
                             {
@@ -258,7 +266,7 @@ namespace ExpeditionFour.SavePatches
                                 if (fm != null)
                                 {
                                     var pos = fm.transform != null ? (Vector3?)fm.transform.position : null;
-                                    FPELog.Info($"[FPE/TRACE]       Member: {fm.firstName} (isAway={fm.isAway}, finishedLeavingShelter={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, job_queue.size={fm.job_queue?.size}, ai_queue.size={fm.ai_queue?.size})");
+                                    FPELog.Info($"Party Member: {fm.firstName} (isAway={fm.isAway}, left={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, jobs={fm.job_queue?.size}, ai={fm.ai_queue?.size})");
                                 }
                             }
                         }
@@ -267,22 +275,27 @@ namespace ExpeditionFour.SavePatches
             }
             catch (Exception e)
             {
-                FPELog.Warn($"[FPE/TRACE] ExplorationManager.SaveLoad post-trace error: {e}");
+                FPELog.Warn($"ExplorationManager.SaveLoad trace error: {e}");
             }
         }
     }
 
+    /// <summary>
+    /// Logs when a party is recalled to the shelter.
+    /// </summary>
     [HarmonyPatch(typeof(ExplorationParty), nameof(ExplorationParty.RecallToShelter))]
     internal static class Trace_Recall
     {
         static void Postfix(ExplorationParty __instance)
         {
             if (!FpeDebug.Enabled) return;
-            FPELog.Info($"[FPE/TRACE] RECALL: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Info($"Party Recall Trace: {FpeDebugFmt.PartyLine(__instance)}");
         }
     }
 
-    // Log “left/returned” job callbacks – this is where the state flips in vanilla.
+    /// <summary>
+    /// Traces the beginning of GoToLocation jobs to monitor character movement across state boundaries.
+    /// </summary>
     [HarmonyPatch(typeof(Job_GoToLocation), "BeginJob")]
     internal static class Trace_GoToLocation_Begin
     {
@@ -291,12 +304,12 @@ namespace ExpeditionFour.SavePatches
             if (!FpeDebug.Enabled) return;
             try
             {
-                var ch = AccessTools.Field(typeof(Job), "character").GetValue(__instance) as FamilyMember;
-                var action = AccessTools.Field(typeof(Job_GoToLocation), "m_callbackAction").GetValue(__instance);
-                if (ch != null)
-                    FPELog.Info($"[FPE/TRACE] Job_GoToLocation.BeginJob for {ch.firstName} action={action}");
+                if (!Safe.TryGetField(__instance, "character", out FamilyMember ch) || ch == null) return;
+                if (!Safe.TryGetField(__instance, "m_callbackAction", out object action)) return;
+                
+                FPELog.Info($"Job Trace: GoToLocation.BeginJob for {ch.firstName}, Callback={action}");
             }
-            catch { /* best effort */ }
+            catch { /* best effort trace */ }
         }
     }
 }

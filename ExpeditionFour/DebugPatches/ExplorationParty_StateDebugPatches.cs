@@ -1,11 +1,14 @@
 using HarmonyLib;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
 
-namespace ExpeditionFour.DebugPatches
+namespace FourPersonExpeditions.DebugPatches
 {
+    /// <summary>
+    /// Debug patches for monitoring the internal state stack of ExplorationParty objects.
+    /// Tracks Push and Pop operations to trace party behavior during expeditions.
+    /// </summary>
     [HarmonyPatch(typeof(ExplorationParty), "PushState")]
     internal static class ExplorationParty_PushState_Patch
     {
@@ -13,9 +16,9 @@ namespace ExpeditionFour.DebugPatches
         {
             try
             {
-                FPELog.Warn($"[FPE/TRACE] ExplorationParty #{__instance.id} - PUSH State: {stateType}");
+                FPELog.Info($"Party Trace: Party #{__instance.id} - Pushing state {stateType}.");
             }
-            catch { /* tracing only */ }
+            catch { /* Debug tracing should not affect critical execution */ }
         }
     }
 
@@ -26,13 +29,19 @@ namespace ExpeditionFour.DebugPatches
         {
             try
             {
-                // Use Traverse to access the 'state' field of the inaccessible StateDef object
-                var stateDefState = Traverse.Create(__result).Field("state").GetValue<ExplorationParty.ePartyState>();
-                FPELog.Warn($"[FPE/TRACE] ExplorationParty #{__instance.id} - POP State: {stateDefState}");
+                // Retrieve the state identifier from the returned StateDef object
+                if (Safe.TryGetField(__result, "state", out ExplorationParty.ePartyState stateDefState))
+                {
+                    FPELog.Info($"Party Trace: Party #{__instance.id} - Popped state {stateDefState}.");
+                }
+                else
+                {
+                    FPELog.Info($"Party Trace: Party #{__instance.id} - Popped state (could not extract identifier).");
+                }
             }
-            catch (System.Exception e)
+            catch (Exception ex)
             {
-                try { FPELog.Warn($"[FPE/TRACE] ExplorationParty #{__instance?.id} - POP State: <unknown> ({e.GetType().Name})"); } catch { }
+                FPELog.Warn($"Party Trace Error: Party #{__instance?.id} PopState error: {ex.Message}");
             }
         }
     }

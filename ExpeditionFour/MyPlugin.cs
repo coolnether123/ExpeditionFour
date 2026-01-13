@@ -1,28 +1,34 @@
 using HarmonyLib;
-using UnityEngine;
 using ModAPI.Core;
 
-// Plugin entry. Applies Harmony patches and seeds config.
-public class MyPlugin : IModPlugin
+namespace FourPersonExpeditions
 {
-    public void Initialize(IPluginContext ctx)
+    // Plugin entry. Applies Harmony patches and seeds expanded party capacity.
+    public class MyPlugin : IModPlugin
     {
-    }
+        private static IPluginContext _ctx;
+        public static IPluginContext Context => _ctx;
 
-    public void Start(IPluginContext ctx)
-    {
-        // Hard cap until UI support expands beyond 4.
+        public void Initialize(IPluginContext ctx)
+        {
+            _ctx = ctx;
+        }
 
-        // Apply patches
-        var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");
+        public void Start(IPluginContext ctx)
+        {
+            // Apply patches
+            var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");
 
-        try { harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly()); }
-        catch (System.Exception ex) { FPELog.Warn($"Harmony PatchAll failed: {ex.ToString()}"); }
+            try 
+            { 
+                harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly()); 
+            }
+            catch (System.Exception ex) 
+            { 
+                ctx.Log.Warn($"Harmony PatchAll failed: {ex}"); 
+            }
 
-
-
-        
-
-        ctx.Log?.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
+            ctx.Log?.Info($"Four Person Expeditions loaded. MaxPartySize={FourPersonConfig.MaxPartySize}");
+        }
     }
 }

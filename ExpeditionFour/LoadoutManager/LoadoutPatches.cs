@@ -1,32 +1,38 @@
 using HarmonyLib;
 using System.Linq;
 using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
 
 // This single Prefix patch acts as a complete state machine for the OnExtra1 button.
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), nameof(ExpeditionMainPanelNew.OnExtra1))]
 public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
 {
+    /// <summary>
+    /// Intercepts the OnExtra1 button click to manage the transition between route selection and member loadouts.
+    /// This allows for multiple loadout screens to be shown sequentially for parties with more than two members.
+    /// </summary>
     public static bool Prefix(ExpeditionMainPanelNew __instance)
     {
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return true;
 
-        var tr = Traverse.Create(__instance);
-        var page = tr.Field("m_page").GetValue();
+        if (!Safe.TryGetField(__instance, "m_page", out object page)) return true;
         string pageName = page.ToString();
 
         switch (pageName)
         {
             case "RouteSetup":
-                if (tr.Field("m_isReadyToGo").GetValue<bool>())
+                if (Safe.GetFieldOrDefault(__instance, "m_isReadyToGo", false))
                 {
-                    FPELog.Info("OnExtra1 State Machine: Route confirmed. Starting loadout sequence.");
-                    // Find the very first selected member to start with.
+                    FPELog.Info("OnExtra1: Route confirmed. Commencing loadout sequence.");
+                    
+                    // Identify the first selected member to initialize loadout
                     logic.ActiveLoadoutIndex = logic.SelectedMemberIndices.FindIndex(idx => idx != -1);
                     if (logic.ActiveLoadoutIndex == -1)
                     {
-                        FPELog.Info("No members selected. Finalizing immediately.");
-                        tr.Method("ConfirmExpeditionSettings").GetValue();
+                        FPELog.Info("OnExtra1: No characters selected. Finalizing expedition immediately.");
+                        Safe.InvokeMethod(__instance, "ConfirmExpeditionSettings");
                     }
                     else
                     {
@@ -50,13 +56,13 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
                 if (nextSlot != -1)
                 {
                     logic.ActiveLoadoutIndex = nextSlot;
-                    FPELog.Info($"Advancing to next loadout slot: {logic.ActiveLoadoutIndex}");
+                    FPELog.Info($"OnExtra1: Transitioning to loadout slot index {logic.ActiveLoadoutIndex}.");
                     ShowLoadoutForSlot(__instance, logic, logic.ActiveLoadoutIndex, false);
                 }
                 else
                 {
-                    FPELog.Info("Final loadout confirmed. Finalizing expedition.");
-                    tr.Method("ConfirmExpeditionSettings").GetValue();
+                    FPELog.Info("OnExtra1: Final loadout stage completed. Finalizing expedition settings.");
+                    Safe.InvokeMethod(__instance, "ConfirmExpeditionSettings");
                 }
                 return false;
 
@@ -65,10 +71,11 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         }
     }
 
+    /// <summary>
+    /// Configures and displays the loadout screen for a specific party member slot.
+    /// </summary>
     private static void ShowLoadoutForSlot(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic, int slot, bool isFirst)
     {
-        var tr = Traverse.Create(panel);
-
         if (!panel.LoadoutScreen.activeInHierarchy)
         {
             panel.LoadoutScreen.SetActive(true);
@@ -76,14 +83,18 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             panel.MapScreen.SetActive(false);
         }
 
-        tr.Field("m_page").SetValue(1); // Set page to LoadoutMember1 enum value
+        // Set page to LoadoutMember1 (assuming enum value 1 corresponds to it)
+        Safe.SetField(panel, "m_page", 1);
 
-        var loadout = tr.Field("m_loadoutScript").GetValue<ExpeditionLoadout>();
-        var pm = logic.AllPartyMembers[slot];
-        loadout.InitializeLoadout(pm, isFirst);
+        if (Safe.TryGetField(panel, "m_loadoutScript", out ExpeditionLoadout loadout))
+        {
+            var pm = logic.AllPartyMembers[slot];
+            loadout.InitializeLoadout(pm, isFirst);
 
-        bool hasAnother = logic.SelectedMemberIndices.Any(selIdx => logic.SelectedMemberIndices.IndexOf(selIdx) > slot && selIdx != -1);
-        loadout.SetConfirmText(Localization.Get(hasAnother ? "UI.NextPerson" : "UI.SendParty"));
+            // Update button text based on whether more members need loadout configuration
+            bool hasAnother = logic.SelectedMemberIndices.Skip(slot + 1).Any(idx => idx != -1);
+            loadout.SetConfirmText(Localization.Get(hasAnother ? "UI.NextPerson" : "UI.SendParty"));
+        }
 
         var audio = isFirst ? panel.acceptRouteSound : panel.selectMemberSound;
         panel.GetComponent<AudioSource>()?.PlayOneShot(audio);

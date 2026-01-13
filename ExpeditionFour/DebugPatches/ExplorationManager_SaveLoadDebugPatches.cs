@@ -2,10 +2,16 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
 using ExpeditionFour.SavePatches;
 
 namespace FourPersonExpeditions.DebugPatches
 {
+    /// <summary>
+    /// Provides additional debug output during the ExplorationManager.SaveLoad process.
+    /// This is used to monitor radio state and party member status for troubleshooting.
+    /// </summary>
     [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.SaveLoad))]
     internal static class ExplorationManager_SaveLoadDebugPatches
     {
@@ -13,49 +19,40 @@ namespace FourPersonExpeditions.DebugPatches
         {
             try
             {
-                FPELog.Info($"[FPE/TRACE] ExplorationManager.SaveLoad({(data?.isLoading == true ? "loading" : "saving")})");
-                var tr = Traverse.Create(__instance);
-                float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
-                float radioTimeoutTimer = tr.Field("m_radioTimeoutTimer").GetValue<float>();
+                FPELog.Info($"Debug Trace: ExplorationManager.SaveLoad ({(data?.isLoading == true ? "Loading" : "Saving")}) - Prefix");
+                
+                float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
+                float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
 
-                // Safe access to private radio object
-                Obj_Radio shelterRadio = null;
-                try { shelterRadio = Traverse.Create(__instance).Method("GetShelterRadio").GetValue<Obj_Radio>(); }
-                catch { /* best effort */ }
+                Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
                 bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
 
-                FPELog.Info($"[FPE/TRACE]   Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+                FPELog.Info($"Debug Trace: Radio Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
             }
-            catch { /* tracing should never break load */ }
+            catch { /* Debug tracing should never interfere with critical game operations */ }
         }
 
         static void Postfix(ExplorationManager __instance, SaveData data)
         {
             try
             {
-                var tr = Traverse.Create(__instance);
-                float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
-                float radioTimeoutTimer = tr.Field("m_radioTimeoutTimer").GetValue<float>();
+                FPELog.Info($"Debug Trace: ExplorationManager.SaveLoad - Postfix");
+
+                float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
+                float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
                 
-                // Use Traverse to call GetShelterRadio, as it's private
-                Obj_Radio shelterRadio = null;
-                try { shelterRadio = Traverse.Create(__instance).Method("GetShelterRadio").GetValue<Obj_Radio>(); }
-                catch { /* best effort */ }
+                Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
                 bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
 
-                FPELog.Info($"[FPE/TRACE]   Radio State (Postfix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+                FPELog.Info($"Debug Trace: Radio Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
 
-                var dict = AccessTools.Field(typeof(ExplorationManager), "m_parties")
-                                      .GetValue(__instance) as Dictionary<int, ExplorationParty>;
-                if (dict != null)
+                if (Safe.TryGetField(__instance, "m_parties", out Dictionary<int, ExplorationParty> dict) && dict != null)
                 {
                     foreach (var kv in dict)
                     {
-                        FPELog.Info($"[FPE/TRACE] {FpeDebugFmt.PartyLine(kv.Value)}");
-                        // Log individual FamilyMember positions and flags
-                        var memberList = AccessTools.Field(typeof(ExplorationParty), "m_partyMembers")
-                                                    .GetValue(kv.Value) as List<PartyMember>;
-                        if (memberList != null)
+                        FPELog.Info($"Debug Trace: {FpeDebugFmt.PartyLine(kv.Value)}");
+                        
+                        if (Safe.TryGetField(kv.Value, "m_partyMembers", out List<PartyMember> memberList) && memberList != null)
                         {
                             foreach (var pm in memberList)
                             {
@@ -64,7 +61,7 @@ namespace FourPersonExpeditions.DebugPatches
                                 {
                                     Vector3? pos = null;
                                     try { if (fm.transform != null) pos = fm.transform.position; } catch { }
-                                    FPELog.Info($"[FPE/TRACE]     Member: {fm.firstName} (isAway={fm.isAway}, finishedLeavingShelter={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")})");
+                                    FPELog.Info($"Debug Trace: Member={fm.firstName}, isAway={fm.isAway}, left={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}");
                                 }
                             }
                         }
@@ -73,7 +70,7 @@ namespace FourPersonExpeditions.DebugPatches
             }
             catch (Exception e)
             {
-                FPELog.Warn($"[FPE/TRACE] ExplorationManager.SaveLoad post-trace error: {e}");
+                FPELog.Warn($"Debug Trace: ExplorationManager.SaveLoad trace encounter error: {e}");
             }
         }
     }

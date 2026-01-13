@@ -1,41 +1,45 @@
 using HarmonyLib;
 using System;
-using System.Collections.Generic;
 using UnityEngine;
+using ModAPI.Reflection;
 
 namespace FourPersonExpeditions.SavePatches
 {
+    /// <summary>
+    /// Patches ExplorationManager.SaveLoad to ensure radio-related timers and transmission states are correctly persisted.
+    /// This resolves issues where the radio state might become desynchronized after loading a save with an active expedition.
+    /// </summary>
     [HarmonyPatch(typeof(ExplorationManager), "SaveLoad")]
     public static class ExplorationManager_RadioSavePatch
     {
         public static void Postfix(ExplorationManager __instance, SaveData data)
         {
-            FPELog.Info("[FPE/SavePatch] ExplorationManager_RadioSavePatch Postfix running.");
+            FPELog.Info("ExplorationManager_RadioSave: Processing persistence for radio state.");
 
-            // Access private fields using Traverse
-            var tr = Traverse.Create(__instance);
-            float radioWaitTimer = tr.Field("m_radioWaitTimer").GetValue<float>();
-            float radioTimeoutTimer = tr.Field("m_radioTimeoutTimer").GetValue<float>();
+            // Retrieve current timer values from private fields
+            float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
+            float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
             
-            // Save/Load radio timers
+            // Execute Save/Load operations for the timers
             data.SaveLoad("radioWaitTimer", ref radioWaitTimer);
             data.SaveLoad("radioTimeoutTimer", ref radioTimeoutTimer);
 
-            // Update instance fields after loading
+            // Update internal state if loading
             if (data.isLoading)
             {
-                tr.Field("m_radioWaitTimer").SetValue(radioWaitTimer);
-                tr.Field("m_radioTimeoutTimer").SetValue(radioTimeoutTimer);
+                Safe.SetField(__instance, "m_radioWaitTimer", radioWaitTimer);
+                Safe.SetField(__instance, "m_radioTimeoutTimer", radioTimeoutTimer);
             }
 
-            // Handle incomingTransmission flag from Obj_Radio
+            // Sync the incoming transmission flag from the shelter radio object
             bool incomingTransmission = false;
-            Obj_Radio shelterRadio = __instance.GetShelterRadio(); // GetShelterRadio is public
+            Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
 
             if (data.isSaving && (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null)
             {
                 incomingTransmission = shelterRadio.incomingTransmission;
             }
+            
             data.SaveLoad("incomingTransmission", ref incomingTransmission);
 
             if (data.isLoading && (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null)
@@ -43,7 +47,7 @@ namespace FourPersonExpeditions.SavePatches
                 shelterRadio.incomingTransmission = incomingTransmission;
             }
 
-            FPELog.Info($"[FPE/SavePatch] Radio state saved/loaded: Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+            FPELog.Info($"ExplorationManager_RadioSave: Timers [{radioWaitTimer}/{radioTimeoutTimer}], Incoming [{incomingTransmission}] synchronized.");
         }
     }
 }
