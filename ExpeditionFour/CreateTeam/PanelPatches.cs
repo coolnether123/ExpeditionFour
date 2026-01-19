@@ -154,7 +154,8 @@ public static class ExpeditionMainPanelNew_CalculateRouteDistance_Patch
                     sb.Append($"[ID {entry.Key}: {state} ({mCount} mems)] ");
                 }
             }
-            FPELog.Info(sb.ToString());
+            // Removed verbose party status logging - called too frequently during route selection
+            // FPELog.Info(sb.ToString());
 
             bool useVehicle = Safe.GetFieldOrDefault(__instance, "useVehicle", false);
             bool useHorse = Safe.GetFieldOrDefault(__instance, "useHorse", false);

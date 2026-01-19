@@ -64,6 +64,7 @@
     <Compile Include="LoadoutManager\LoadoutController.cs" />
     <Compile Include="LoadoutManager\LoadoutPatches.cs" />
     <Compile Include="MapPatches\PartyMapPanel_Hooks.cs" />
+    <Compile Include="MapPatches\PartyMapPanel_InventoryPatch.cs" />
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
     <Compile Include="Utilities\FPELog.cs" />
@@ -76,7 +77,10 @@
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
     <!-- Temporarily disable radio timer save patch until boundary is found -->
     <!-- <Compile Include="SavePatches\RadioTimerSavePatch.cs" /> -->
+    <Compile Include="UI\SummaryPanelExpander.cs" />
     <Compile Include="UI\ReturnSummaryFour.cs" />
+    <Compile Include="UI\CombatSummaryFour.cs" />
+    <Compile Include="UI\DialogueSummaryFour.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Lib.Harmony">

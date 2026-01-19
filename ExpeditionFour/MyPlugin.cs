@@ -17,7 +17,7 @@ namespace FourPersonExpeditions
         public void Start(IPluginContext ctx)
         {
             // Apply patches
-            var harmony = new Harmony("com.coolnether123.fourpersonexpeditions");
+            var harmony = new Harmony("Coolnether123.FourPersonExpeditions");
 
             try 
             { 

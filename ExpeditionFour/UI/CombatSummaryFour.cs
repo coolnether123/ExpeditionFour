@@ -1,30 +1,31 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using ModAPI.Reflection;
 using FourPersonExpeditions;
 
 namespace FourPersonExpeditions.UI
 {
     /// <summary>
-    /// Patches the expedition return summary screen to correctly display up to four members.
-    /// Refactored to use SummaryPanelExpander for DRY compliance.
+    /// Patches the combat encounter summary screen to display up to four members.
+    /// Shows Strength and Dexterity XP gains after combat.
     /// </summary>
-    [HarmonyPatch(typeof(ExplorationSummaryPanel), "OnShow")]
-    internal static class ReturnSummaryFour
+    [HarmonyPatch(typeof(EncounterCombatSummaryPanel), "OnShow")]
+    internal static class CombatSummaryFour
     {
-        static void Prefix(ExplorationSummaryPanel __instance)
+        static void Prefix(EncounterCombatSummaryPanel __instance)
         {
-            // Delegate expansion logic to the reusable expander
+            // Expand character slots from 2 to 4
+            // Note: EncounterCombatSummaryPanel doesn't have m_playerCharacters array,
+            // only characterSummaries list
             SummaryPanelExpander.ExpandCharacterSlots(
                 __instance,
                 summariesFieldName: "characterSummaries",
-                charactersFieldName: "m_playerCharacters"
+                charactersFieldName: null  // This panel doesn't have a separate character array
             );
         }
 
-        static void Postfix(ExplorationSummaryPanel __instance)
+        static void Postfix(EncounterCombatSummaryPanel __instance)
         {
             if (__instance == null) return;
-            if (!Safe.TryGetField(__instance, "m_party", out ExplorationParty party) || party == null) return;
 
             // Fix close button depth
             SummaryPanelExpander.FixCloseButton(__instance.gameObject);
@@ -32,7 +33,7 @@ namespace FourPersonExpeditions.UI
             // Apply custom layout for 3-4 member parties
             SummaryPanelExpander.ApplyCustomLayout(
                 __instance,
-                party.membersCount,
+                SummaryPanelExpander.GetPlayerControlledCount(),
                 summariesFieldName: "characterSummaries",
                 gridFieldName: "member_grid",
                 layout: SummaryPanelLayout.Default
@@ -40,3 +41,4 @@ namespace FourPersonExpeditions.UI
         }
     }
 }
+

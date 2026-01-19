@@ -1,41 +1,53 @@
-# Four Person Expeditions Mod
+# Four Person Expeditions
 
-## Version: v0.7
+**Version:** 1.0.0
+**Author:** Coolnether123
+**License:** MIT
+**Requires:** Sheltered Mod Manager v1.0+
 
-### Description
+## Description
 
-This mod enhances the Sheltered experience by allowing to take a party of four characters on expeditions, instead of the vanilla limit of two. 
+Expands Sheltered's expedition system to support 4-person parties instead of the vanilla 2-person limit. Expedition-related systems have been updated to support the larger party size.
 
-### Features
+## Features
 
-*   **Expanded Party Size**: Take up to four characters on any expedition.
-*   **Combat Integration**: The combat system has been adjusted to accommodate the fourth party member.
+- **4-Person Expeditions** - Take up to four characters on any expedition
+- **Individual Loadouts** - Configure equipment for each party member separately
+- **Sequential Selection** - Choose party members one at a time with visual feedback
+- **Resource Scaling** - Water and fuel calculations adjusted for larger parties
+- **Combat Support** - All four party members participate in combat encounters
+- **Map Navigation** - Page between party members on the expedition map using arrow keys
+- **Full XP Display** - All summary screens (exploration, combat, dialogue) show XP gains for all four members
 
-### Installation
+## Installation
 
-1.  **Ensure you have the Sheltered Mod Loader installed.** (This mod requires the Mod Loader to function).
-2.  **Download the latest release of the Four Person Expeditions Mod.**
-3.  **Extract the contents** of the downloaded archive into your game's `mods` folder (e.g., `D:\Epic Games\Sheltered\mods\`).
-4.  **Launch after enabling in the mod loader.** 
+1. Install Sheltered Mod Manager v1.0 or higher
+2. Download the latest release of Four Person Expeditions
+3. Extract the mod folder into your game's `mods` directory
+4. Enable the mod in the Mod Manager
+5. Launch the game
 
-### Usage
+## Usage
 
-Simply start a new expedition as like normal. The party selection window will allow up to four members. To prevent more members in the party select the portrait nobody.
+Start an expedition as normal. The party selection window allows up to four members. To leave a slot empty, select the "Nobody" portrait. During expeditions, use the left/right arrow keys to page between party members on the map view.
 
-### Known Issues
+## Known Issues
 
-*   **Character Positioning (Minor Visual Bug)**: While efforts have been made to correctly position the characters in combat, there are some minor visual overlaps or slightly off-center placements depending on screen resolution or specific combat scenarios. This is a known visual bug and does not affect gameplay.
-*   **UI panels not showing the third or fourth party member**: There are still some panels I haven't gotten to patching and will be done in a future update.
+- **Character Positioning in Combat**: Minor visual overlaps of character positioning. Does not affect gameplay.
 
-### Future Plans (TODO for v0.8+)
+## Compatibility
 
-*   A more comprehensive overhaul of character positioning in combat to ensure optimal visual alignment across all combat scenarios.
-*   Updates to all panels that show XP gain.
+- **Vanilla Saves**: Can be loaded. Existing expedition parties remain at 2 members until you start a new expedition.
+- **Mod Saves**: Fully compatible with SMM's save tracking system.
 
-### Credits
+## Save Warning
 
-*   **Creator**: Coolnether123
+- **Before Removing**: Make sure all expeditions with 3 or 4 charecters are recalled before loading the save without the mod active.
 
-### License
+## Credits
 
-This mod is released under the terms specified in the `LICENSE` file included with this distribution.
+**Creator:** Coolnether123
+
+## License
+
+MIT License - See LICENSE file for details.

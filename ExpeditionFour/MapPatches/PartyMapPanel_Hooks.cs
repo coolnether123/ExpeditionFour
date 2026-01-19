@@ -19,9 +19,13 @@ namespace FourPersonExpeditions.MapPatches
             var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
             if (logic == null) logic = __instance.gameObject.AddComponent<FourPersonPartyLogic>();
 
-            // Reset to the first page when showing the panel
-            logic.mapScreenPage = 0;
-
+            // On first initialization, reset to page 0
+            // When returning from sub-panels (like inventory), preserve the current page
+            if (!logic.isMapUIInitialized)
+            {
+                logic.mapScreenPage = 0;
+            }
+            
             if (logic.isMapUIInitialized)
             {
                 // If already initialized, just refresh the UI
@@ -253,6 +257,37 @@ namespace FourPersonExpeditions.MapPatches
                 health.value = (float)person.health / person.maxHealth;
             if (bleedIcon != null)
                 bleedIcon.SetActive(person.illness.bleeding.isActive);
+        }
+    }
+
+    /// <summary>
+    /// Patch for party switching - resets page when switching to a different party
+    /// </summary>
+    [HarmonyPatch(typeof(PartyMapPanel), nameof(PartyMapPanel.OnTabRight))]
+    public static class PartyMapPanel_OnTabRight_Patch
+    {
+        public static void Postfix(PartyMapPanel __instance)
+        {
+            var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
+            if (logic != null)
+            {
+                // Reset to first page when switching parties
+                logic.mapScreenPage = 0;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(PartyMapPanel), nameof(PartyMapPanel.OnTabLeft))]
+    public static class PartyMapPanel_OnTabLeft_Patch
+    {
+        public static void Postfix(PartyMapPanel __instance)
+        {
+            var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
+            if (logic != null)
+            {
+                // Reset to first page when switching parties
+                logic.mapScreenPage = 0;
+            }
         }
     }
 }

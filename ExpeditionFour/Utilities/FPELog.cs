@@ -41,7 +41,7 @@ namespace FourPersonExpeditions
 
     internal static class FpeDebug
     {
-        // Debug tracing is currently always enabled for development.
-        public static bool Enabled => true;
+        // Debug tracing disabled for release. Set to true for development/debugging.
+        public static bool Enabled => false;
     }
 }

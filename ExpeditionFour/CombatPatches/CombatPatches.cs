@@ -143,22 +143,6 @@ namespace FourPersonExpeditions.CombatFixes
                     list.Add(encChar);
                 }
             }
-
-            // Log positions and names for all player characters
-            FPELog.Info("[CombatSetup] All Player Character Positions:");
-            for (int i = 0; i < list.Count; i++)
-            {
-                var character = list[i];
-                
-                Vector3 fieldHome = Safe.GetFieldOrDefault(character, "field_home_position", Vector3.zero);
-                Vector3 breachHome = Safe.GetFieldOrDefault(character, "breach_home_position", Vector3.zero);
-                Vector3 aboveBreachHome = Safe.GetFieldOrDefault(character, "above_breach_home_position", Vector3.zero);
-
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Position: X={character.transform.position.x}, Y={character.transform.position.y}, Z={character.transform.position.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Field Home: X={fieldHome.x}, Y={fieldHome.y}, Z={fieldHome.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Breach Home: X={breachHome.x}, Y={breachHome.y}, Z={breachHome.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Above Breach Home: X={aboveBreachHome.x}, Y={aboveBreachHome.y}, Z={aboveBreachHome.z}");
-            }
         }
     }
 
