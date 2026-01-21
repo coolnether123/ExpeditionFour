@@ -42,7 +42,7 @@ Start an expedition as normal. The party selection window allows up to four memb
 
 ## Save Warning
 
-- **Before Removing**: Make sure all expeditions with 3 or 4 charecters are recalled before loading the save without the mod active.
+- **Before Removing**: Make sure all expeditions with 3 or 4 characters are recalled before loading the save without the mod active.
 
 ## Credits
 
