@@ -17,11 +17,11 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\..\Epic Games\Sheltered\mods\ExpeditionFour\Assemblies\</OutputPath>
+    <OutputPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\mods\ExpeditionFour\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>5</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,19 +29,15 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>5</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>..\..\..\..\Epic Games\Sheltered\mods\0Harmony\Assemblies\0Harmony.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="ModAPI">
-      <HintPath>..\..\..\..\Epic Games\Sheltered\SMM\ModAPI.dll</HintPath>
+      <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\SMM\ModAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -51,28 +47,47 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CombatPatches\CombatPatches.cs" />
-    <Compile Include="CombatPatches\DialogueDebug.cs" />
+    <!-- Debug patches temporarily disabled to stabilize load -->
+    <!-- <Compile Include="DebugPatches\ExplorationManager_RadioDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationManager_SaveLoadDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ObjRadio_DebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationParty_StateDebugPatches.cs" /> -->
+    <!-- <Compile Include="DebugPatches\ExplorationParty_Awake_DebugPatch.cs" /> -->
     <Compile Include="LoadoutManager\FourPersonPartyLogic.cs" />
-    <Compile Include="CreateTeam\ManagerPatches.cs" />
     <Compile Include="CreateTeam\PanelPatches.cs" />
     <Compile Include="LoadoutManager\LoadoutController.cs" />
     <Compile Include="LoadoutManager\LoadoutPatches.cs" />
     <Compile Include="MapPatches\PartyMapPanel_Hooks.cs" />
+    <Compile Include="MapPatches\PartyMapPanel_InventoryPatch.cs" />
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
+    <Compile Include="Utilities\FPELog.cs" />
+    <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="PartySetupFour_Navigation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SavePatches\AddMemberToParty.cs" />
     <Compile Include="SavePatches\FixOnLoad_AwayFlags.cs" />
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
+    <!-- Temporarily disable radio timer save patch until boundary is found -->
+    <!-- <Compile Include="SavePatches\RadioTimerSavePatch.cs" /> -->
+    <Compile Include="UI\SummaryPanelExpander.cs" />
     <Compile Include="UI\ReturnSummaryFour.cs" />
+    <Compile Include="UI\CombatSummaryFour.cs" />
+    <Compile Include="UI\CombatSummaryLogic.cs" />
+    <Compile Include="UI\DialogueSummaryFour.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony">
+      <Version>2.4.2</Version>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

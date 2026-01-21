@@ -1,117 +1,99 @@
-using HarmonyLib;
+using ModAPI.UI;
 using UnityEngine;
 
-internal static class MMLogger
+namespace FourPersonExpeditions
 {
-    public static void Log(string msg)
+    /// <summary>
+    /// Wraps ModAPI.UI.UIHelper for convenience.
+    /// Most methods now delegate to UIHelper.
+    /// </summary>
+    internal static class UICloneUtil
     {
-        Debug.Log($"[FourPersonExpeditions] {msg}");
-    }
-}
+        // This method is CUSTOM to FPE (not in ModAPI) - KEEP IT
+        public static ExpeditionPartySetup.MemberAvatar CloneAvatar(
+            ExpeditionPartySetup.MemberAvatar src,
+            Transform defaultParent = null)
+        {
+            var dst = new ExpeditionPartySetup.MemberAvatar();
+            if (src == null) return dst;
 
-internal static class FPELog
-{
-    public static void Info(string msg) { 
-        //MMLog.Write("[FourPersonExpeditions] " + msg); 
-    }
-    public static void Warn(string msg) { 
-        //MMLog.Write("[FourPersonExpeditionsWarning] " + msg); // Commenting out logging for v0.7 pre-release
-    }
-}
+            // Reuse UIHelper.Clone for GameObject cloning
+            if (src.background != null)
+            {
+                var go = UIHelper.Clone(src.background.gameObject, 
+                    defaultParent ?? src.background.transform.parent, 
+                    stripAnchors: true);
+                go.name = src.background.gameObject.name + "_Clone";
+                dst.background = go.GetComponent<UISprite>();
+            }
+            
+            if (src.polaroid != null)
+            {
+                var go = UIHelper.Clone(src.polaroid.gameObject, 
+                    defaultParent ?? src.polaroid.transform.parent, 
+                    stripAnchors: true);
+                go.name = src.polaroid.gameObject.name + "_Clone";
+                dst.polaroid = go.GetComponent<UISprite>();
+            }
+            
+            if (src.avatar != null)
+            {
+                var go = UIHelper.Clone(src.avatar.gameObject, 
+                    defaultParent ?? src.avatar.transform.parent, 
+                    stripAnchors: true);
+                go.name = src.avatar.gameObject.name + "_Clone";
+                dst.avatar = go.GetComponent<UI2DSprite>();
+            }
+            
+            if (src.name != null)
+            {
+                var go = UIHelper.Clone(src.name.gameObject, 
+                    defaultParent ?? src.name.transform.parent, 
+                    stripAnchors: true);
+                go.name = src.name.gameObject.name + "_Clone";
+                dst.name = go.GetComponent<UILabel>();
+            }
 
-internal static class UICloneUtil
-{
-    public static ExpeditionPartySetup.MemberAvatar CloneAvatar(
-        ExpeditionPartySetup.MemberAvatar src,
-        Transform defaultParent = null
-    )
-    {
-        var dst = new ExpeditionPartySetup.MemberAvatar();
-        if (src == null) return dst;
-
-        if (src.background != null)
-        {
-            var go = UnityEngine.Object.Instantiate(src.background.gameObject) as GameObject;
-            go.name = src.background.gameObject.name + "_Clone";
-            var p = defaultParent ?? src.background.transform.parent;
-            go.transform.SetParent(p, false);
-            go.transform.localScale = src.background.transform.localScale;
-            go.transform.localRotation = src.background.transform.localRotation;
-            go.transform.localPosition = src.background.transform.localPosition;
-            dst.background = go.GetComponent<UISprite>();
-            StripAnchors(go);
-        }
-        if (src.polaroid != null)
-        {
-            var go = UnityEngine.Object.Instantiate(src.polaroid.gameObject) as GameObject;
-            go.name = src.polaroid.gameObject.name + "_Clone";
-            var p = defaultParent ?? src.polaroid.transform.parent;
-            go.transform.SetParent(p, false);
-            go.transform.localScale = src.polaroid.transform.localScale;
-            go.transform.localRotation = src.polaroid.transform.localRotation;
-            go.transform.localPosition = src.polaroid.transform.localPosition;
-            dst.polaroid = go.GetComponent<UISprite>();
-            StripAnchors(go);
-        }
-        if (src.avatar != null)
-        {
-            var go = UnityEngine.Object.Instantiate(src.avatar.gameObject) as GameObject;
-            go.name = src.avatar.gameObject.name + "_Clone";
-            var p = defaultParent ?? src.avatar.transform.parent;
-            go.transform.SetParent(p, false);
-            go.transform.localScale = src.avatar.transform.localScale;
-            go.transform.localRotation = src.avatar.transform.localRotation;
-            go.transform.localPosition = src.avatar.transform.localPosition;
-            dst.avatar = go.GetComponent<UI2DSprite>();
-            StripAnchors(go);
-        }
-        if (src.name != null)
-        {
-            var go = UnityEngine.Object.Instantiate(src.name.gameObject) as GameObject;
-            go.name = src.name.gameObject.name + "_Clone";
-            var p = defaultParent ?? src.name.transform.parent;
-            go.transform.SetParent(p, false);
-            go.transform.localScale = src.name.transform.localScale;
-            go.transform.localRotation = src.name.transform.localRotation;
-            go.transform.localPosition = src.name.transform.localPosition;
-            dst.name = go.GetComponent<UILabel>();
-            StripAnchors(go);
+            return dst;
         }
 
-        return dst;
-    }
-
-    public static void OffsetAvatar(ExpeditionPartySetup.MemberAvatar avatar, Vector3 targetLocalPosOfBackground, ExpeditionPartySetup.MemberAvatar reference)
-    {
-        if (avatar == null) return;
-        Vector3 refBg = reference != null && reference.background != null ? reference.background.transform.localPosition : Vector3.zero;
-        Vector3 delta = targetLocalPosOfBackground - refBg;
-
-        if (avatar.background != null) avatar.background.transform.localPosition = (reference.background != null ? reference.background.transform.localPosition : Vector3.zero) + delta;
-        if (avatar.polaroid  != null) avatar.polaroid.transform.localPosition  = (reference.polaroid  != null ? reference.polaroid.transform.localPosition  : Vector3.zero) + delta;
-        if (avatar.avatar    != null) avatar.avatar.transform.localPosition    = (reference.avatar    != null ? reference.avatar.transform.localPosition    : Vector3.zero) + delta;
-        if (avatar.name      != null) avatar.name.transform.localPosition      = (reference.name      != null ? reference.name.transform.localPosition      : Vector3.zero) + delta;
-    }
-
-    private static void StripAnchors(GameObject go)
-    {
-        var anchor = go.GetComponent<UIAnchor>();
-        if (anchor != null) UnityEngine.Object.Destroy(anchor);
-        var stretch = go.GetComponent<UIStretch>();
-        if (stretch != null) UnityEngine.Object.Destroy(stretch);
-        var widget = go.GetComponent<UIWidget>();
-        if (widget != null)
+        // This method is CUSTOM to FPE - KEEP IT
+        public static void OffsetAvatar(
+            ExpeditionPartySetup.MemberAvatar avatar, 
+            Vector3 targetLocalPosOfBackground, 
+            ExpeditionPartySetup.MemberAvatar reference)
         {
-            try { widget.SetAnchor((Transform)null); } catch { }
-        }
-    }
+            if (avatar == null) return;
+            Vector3 refBg = reference != null && reference.background != null 
+                ? reference.background.transform.localPosition 
+                : Vector3.zero;
+            Vector3 delta = targetLocalPosOfBackground - refBg;
 
-    public static void SetAvatarActive(ExpeditionPartySetup.MemberAvatar avatar, bool active)
-    {
-        if (avatar == null) return;
-        if (avatar.background != null) avatar.background.gameObject.SetActive(active);
-        if (avatar.polaroid  != null) avatar.polaroid.gameObject.SetActive(active);
-        if (avatar.avatar    != null) avatar.avatar.gameObject.SetActive(active);
-        if (avatar.name      != null) avatar.name.gameObject.SetActive(active);
+            if (avatar.background != null) 
+                avatar.background.transform.localPosition = 
+                    (reference?.background != null ? reference.background.transform.localPosition : Vector3.zero) + delta;
+            if (avatar.polaroid != null) 
+                avatar.polaroid.transform.localPosition = 
+                    (reference?.polaroid != null ? reference.polaroid.transform.localPosition : Vector3.zero) + delta;
+            if (avatar.avatar != null) 
+                avatar.avatar.transform.localPosition = 
+                    (reference?.avatar != null ? reference.avatar.transform.localPosition : Vector3.zero) + delta;
+            if (avatar.name != null) 
+                avatar.name.transform.localPosition = 
+                    (reference?.name != null ? reference.name.transform.localPosition : Vector3.zero) + delta;
+        }
+
+        // REPLACE with ModAPI's UIHelper.StripAnchors
+        public static void StripAnchors(GameObject go) => UIHelper.StripAnchors(go);
+
+        // This method is CUSTOM to FPE - KEEP IT
+        public static void SetAvatarActive(ExpeditionPartySetup.MemberAvatar avatar, bool active)
+        {
+            if (avatar == null) return;
+            if (avatar.background != null) avatar.background.gameObject.SetActive(active);
+            if (avatar.polaroid != null) avatar.polaroid.gameObject.SetActive(active);
+            if (avatar.avatar != null) avatar.avatar.gameObject.SetActive(active);
+            if (avatar.name != null) avatar.name.gameObject.SetActive(active);
+        }
     }
 }

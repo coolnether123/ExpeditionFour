@@ -1,7 +1,10 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ModAPI.Reflection;
+using FourPersonExpeditions;
+using ModAPI.UI;
 
 namespace FourPersonExpeditions.CombatFixes
 {
@@ -34,11 +37,15 @@ namespace FourPersonExpeditions.CombatFixes
                     return true; // Let the original method handle text display timing.
                 }
 
-                FPELog.Info("[DialogueStageFix] Intercepting NPC-initiated encounter to prevent soft-lock.");
+                FPELog.Debug("[DialogueStageFix] Intercepting NPC-initiated encounter to prevent soft-lock.");
 
-                var tr = Traverse.Create(__instance);
-                var nextState = tr.Method("State_Npc_PlayerOpeningResponse").GetValue<BaseDialogueStage.DialogueState>();
-                tr.Method("SetState", new object[] { nextState }).GetValue();
+                if (!Safe.TryCall<BaseDialogueStage.DialogueState>(__instance, "State_Npc_PlayerOpeningResponse", out var nextState))
+                {
+                    FPELog.Warn("[DialogueStageFix] Could not get next state");
+                    return true;
+                }
+                
+                Safe.InvokeMethod(__instance, "SetState", nextState);
 
                 return false; // Skip the original buggy method.
             }
@@ -61,14 +68,17 @@ namespace FourPersonExpeditions.CombatFixes
         public static void Postfix(EncounterManager __instance)
         {
             if (__instance == null) return;
-            var tr = Traverse.Create(__instance);
-            var list = tr.Field("player_characters").GetValue<List<EncounterCharacter>>();
+            if (!Safe.TryGetField(__instance, "player_characters", out List<EncounterCharacter> list))
+            {
+                FPELog.Warn("[CombatSetup] Could not access player_characters");
+                return;
+            }
             if (list == null || list.Count == 0) return;
 
             int target = Mathf.Max(list.Count, FourPersonConfig.MaxPartySize);
             if (list.Count >= target) return;
 
-            FPELog.Info($"[CombatSetup] Expanding player character slots from {list.Count} to {target}.");
+            FPELog.Debug($"[CombatSetup] Expanding player character slots from {list.Count} to {target}.");
 
             var last = list[list.Count - 1];
             var parent = last.transform.parent;
@@ -79,24 +89,24 @@ namespace FourPersonExpeditions.CombatFixes
                 posStep = last.transform.localPosition - list[list.Count - 2].transform.localPosition;
             }
 
-            var lastTr = Traverse.Create(last);
-            Vector3 lastFieldHome = lastTr.Field("field_home_position").GetValue<Vector3>();
-            Vector3 lastBreachHome = lastTr.Field("breach_home_position").GetValue<Vector3>();
-            Vector3 lastAboveHome = lastTr.Field("above_breach_home_position").GetValue<Vector3>();
+            Vector3 lastFieldHome = Safe.GetFieldOrDefault(last, "field_home_position", Vector3.zero);
+            Vector3 lastBreachHome = Safe.GetFieldOrDefault(last, "breach_home_position", Vector3.zero);
+            Vector3 lastAboveHome = Safe.GetFieldOrDefault(last, "above_breach_home_position", Vector3.zero);
 
             Vector3 stepField = posStep, stepBreach = posStep, stepAbove = posStep;
             if (list.Count >= 2)
             {
-                var prevTr = Traverse.Create(list[list.Count - 2]);
-                stepField = lastFieldHome - prevTr.Field("field_home_position").GetValue<Vector3>();
-                stepBreach = lastBreachHome - prevTr.Field("breach_home_position").GetValue<Vector3>();
-                stepAbove = lastAboveHome - prevTr.Field("above_breach_home_position").GetValue<Vector3>();
+                var prev = list[list.Count - 2];
+                stepField = lastFieldHome - Safe.GetFieldOrDefault(prev, "field_home_position", Vector3.zero);
+                stepBreach = lastBreachHome - Safe.GetFieldOrDefault(prev, "breach_home_position", Vector3.zero);
+                stepAbove = lastAboveHome - Safe.GetFieldOrDefault(prev, "above_breach_home_position", Vector3.zero);
             }
 
             int startCount = list.Count;
             for (int i = startCount; i < target; i++)
             {
-                var cloneGo = UnityEngine.Object.Instantiate(last.gameObject, parent);
+                var cloneGo = UnityEngine.Object.Instantiate(last.gameObject);
+                cloneGo.transform.SetParent(parent);
                 cloneGo.name = $"{last.name}_FPE_Clone_{i}";
                 int step = i - (startCount - 1);
                 Vector3 calculatedPosition = last.transform.localPosition + (posStep * step);
@@ -108,7 +118,6 @@ namespace FourPersonExpeditions.CombatFixes
                 var encChar = cloneGo.GetComponent<EncounterCharacter>();
                 if (encChar != null)
                 {
-                    var encTr = Traverse.Create(encChar);
                     Vector3 finalFieldHome = lastFieldHome + (stepField * step);
                     Vector3 finalBreachHome = lastBreachHome + (stepBreach * step);
                     Vector3 finalAboveHome = lastAboveHome + (stepAbove * step);
@@ -120,36 +129,19 @@ namespace FourPersonExpeditions.CombatFixes
                         finalBreachHome += new Vector3(-300f, 105f, 0f);
                         finalAboveHome += new Vector3(-300f, 105f, 0f);
 
-                        FPELog.Info($"[CombatSetup] Fourth Person - Field Home Position: X={finalFieldHome.x}, Y={finalFieldHome.y}, Z={finalFieldHome.z}");
-                        FPELog.Info($"[CombatSetup] Fourth Person - Breach Home Position: X={finalBreachHome.x}, Y={finalBreachHome.y}, Z={finalBreachHome.z}");
-                        FPELog.Info($"[CombatSetup] Fourth Person - Above Breach Home Position: X={finalAboveHome.x}, Y={finalAboveHome.y}, Z={finalAboveHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Field Home Position: X={finalFieldHome.x}, Y={finalFieldHome.y}, Z={finalFieldHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Breach Home Position: X={finalBreachHome.x}, Y={finalBreachHome.y}, Z={finalBreachHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Above Breach Home Position: X={finalAboveHome.x}, Y={finalAboveHome.y}, Z={finalAboveHome.z}");
                     }
 
-                    encTr.Field("field_home_position").SetValue(finalFieldHome);
-                    encTr.Field("breach_home_position").SetValue(finalBreachHome);
-                    encTr.Field("above_breach_home_position").SetValue(finalAboveHome);
+                    Safe.SetField(encChar, "field_home_position", finalFieldHome);
+                    Safe.SetField(encChar, "breach_home_position", finalBreachHome);
+                    Safe.SetField(encChar, "above_breach_home_position", finalAboveHome);
 
                     encChar.Initialise();
                     cloneGo.SetActive(false);
                     list.Add(encChar);
                 }
-            }
-
-            // Log positions and names for all player characters
-            FPELog.Info("[CombatSetup] All Player Character Positions:");
-            for (int i = 0; i < list.Count; i++)
-            {
-                var character = list[i];
-                var charTr = Traverse.Create(character); // Create Traverse for the character
-
-                Vector3 fieldHome = charTr.Field("field_home_position").GetValue<Vector3>();
-                Vector3 breachHome = charTr.Field("breach_home_position").GetValue<Vector3>();
-                Vector3 aboveBreachHome = charTr.Field("above_breach_home_position").GetValue<Vector3>();
-
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Position: X={character.transform.position.x}, Y={character.transform.position.y}, Z={character.transform.position.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Field Home: X={fieldHome.x}, Y={fieldHome.y}, Z={fieldHome.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Breach Home: X={breachHome.x}, Y={breachHome.y}, Z={breachHome.z}");
-                FPELog.Info($"[CombatSetup] Character: {character.Name_Short} (Index: {i}) - Above Breach Home: X={aboveBreachHome.x}, Y={aboveBreachHome.y}, Z={aboveBreachHome.z}");
             }
         }
     }
@@ -165,9 +157,10 @@ namespace FourPersonExpeditions.CombatFixes
         [HarmonyPostfix]
         public static void Awake_Postfix_ExpandHealthBars(EncounterCombatPanel __instance)
         {
-            var tr = Traverse.Create(__instance);
-            var bars = tr.Field("mini_health_bars").GetValue<List<MiniHealthBar>>();
-            var root = tr.Field("mini_healthbar_root").GetValue<Transform>();
+            if (!Safe.TryGetField(__instance, "mini_health_bars", out List<MiniHealthBar> bars))
+                return;
+            if (!Safe.TryGetField(__instance, "mini_healthbar_root", out Transform root))
+                return;
 
             if (root == null || bars == null) return;
 
@@ -186,7 +179,7 @@ namespace FourPersonExpeditions.CombatFixes
             int startCount = bars.Count;
             for (int i = startCount; i < requiredCount; i++)
             {
-                var cloneGo = UnityEngine.Object.Instantiate(template.gameObject, root);
+                var cloneGo = UIHelper.Clone(template.gameObject, root);   
                 cloneGo.name = $"{template.name}_FPE_Clone_{i}";
                 int step = i - (startCount - 1);
                 cloneGo.transform.localPosition = template.transform.localPosition + (posStep * step);
@@ -203,10 +196,12 @@ namespace FourPersonExpeditions.CombatFixes
         [HarmonyPrefix]
         public static bool AssignMiniHealthBars_Prefix_ReassignAll(EncounterCombatPanel __instance)
         {
-            var tr = Traverse.Create(__instance);
-            var players = tr.Field("player_characters").GetValue<List<EncounterCharacter>>();
-            var npcs = tr.Field("npc_characters").GetValue<List<EncounterCharacter>>();
-            var bars = tr.Field("mini_health_bars").GetValue<List<MiniHealthBar>>();
+            if (!Safe.TryGetField(__instance, "player_characters", out List<EncounterCharacter> players))
+                return true;
+            if (!Safe.TryGetField(__instance, "npc_characters", out List<EncounterCharacter> npcs))
+                return true;
+            if (!Safe.TryGetField(__instance, "mini_health_bars", out List<MiniHealthBar> bars))
+                return true;
 
             int barIndex = 0;
             if (players != null)

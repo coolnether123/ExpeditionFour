@@ -1,16 +1,19 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using System;
 
-namespace ExpeditionFour.SavePatches
+namespace FourPersonExpeditions.SavePatches
 {
     /// <summary>
-    /// Lift the vanilla 2-member cap during both runtime and LOAD.
-    /// Mirrors the original method's behavior but allows up to our configured cap.
+    /// Overrides the vanilla AddMemberToParty logic to allow for more than two members in an expedition party.
+    /// This is crucial for both expedition initialization and when loading saves with larger parties.
     /// </summary>
     [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.AddMemberToParty))]
     public static class AddMemberToParty_Prefix
     {
-        // return false to skip original; __result must be set
+        /// <summary>
+        /// Intercepts the addition of a member to a party, enforcing the mod-defined maximum instead of the vanilla cap of two.
+        /// </summary>
         public static bool Prefix(ExplorationManager __instance, int partyId, ref PartyMember __result)
         {
             try
@@ -22,22 +25,24 @@ namespace ExpeditionFour.SavePatches
                     return false;
                 }
 
-                int max = FourPersonConfig.MaxPartySize; // e.g., 4
+                int max = FourPersonConfig.MaxPartySize; 
                 if (party.membersCount >= max)
                 {
+                    FPELog.Warn($"AddMemberToParty: Failed to add member to party {partyId}. Maximum party size of {max} reached.");
                     __result = null;
                     return false;
                 }
 
-                // Vanilla pattern: add PartyMember component and register with party
+                // Replicate vanilla behavior for component addition and registration
                 var member = party.gameObject.AddComponent<PartyMember>();
-                party.AddMember(member);   // sets member.partyId and adds to list
+                party.AddMember(member);   
                 __result = member;
-                return false;              // skip original (which enforces 2)
+                
+                return false; // Suppress original method to bypass vanilla capacity validation
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                FPELog.Warn($"[FPE] AddMemberToParty_Prefix failed: {ex}");
+                FPELog.Warn($"AddMemberToParty: Unexpected error during member addition: {ex.Message}");
                 __result = null;
                 return false;
             }
