@@ -2,7 +2,6 @@
 
 **Version:** 1.0.0
 **Author:** Coolnether123
-**License:** MIT
 **Requires:** Sheltered Mod Manager v1.0+
 
 ## Description
@@ -43,10 +42,6 @@ Start an expedition as normal. The party selection window allows up to four memb
 ## Save Warning
 
 - **Before Removing**: Make sure all expeditions with 3 or 4 characters are recalled before loading the save without the mod active.
-
-## Credits
-
-**Creator:** Coolnether123
 
 ## License
 
