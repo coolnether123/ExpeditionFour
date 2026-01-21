@@ -25,13 +25,13 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             case "RouteSetup":
                 if (Safe.GetFieldOrDefault(__instance, "m_isReadyToGo", false))
                 {
-                    FPELog.Info("OnExtra1: Route confirmed. Commencing loadout sequence.");
+                    FPELog.Debug("OnExtra1: Route confirmed. Commencing loadout sequence.");
                     
                     // Identify the first selected member to initialize loadout
                     logic.ActiveLoadoutIndex = logic.SelectedMemberIndices.FindIndex(idx => idx != -1);
                     if (logic.ActiveLoadoutIndex == -1)
                     {
-                        FPELog.Info("OnExtra1: No characters selected. Finalizing expedition immediately.");
+                        FPELog.Debug("OnExtra1: No characters selected. Finalizing expedition immediately.");
                         Safe.InvokeMethod(__instance, "ConfirmExpeditionSettings");
                     }
                     else
@@ -56,12 +56,12 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
                 if (nextSlot != -1)
                 {
                     logic.ActiveLoadoutIndex = nextSlot;
-                    FPELog.Info($"OnExtra1: Transitioning to loadout slot index {logic.ActiveLoadoutIndex}.");
+                    FPELog.Debug($"OnExtra1: Transitioning to loadout slot index {logic.ActiveLoadoutIndex}.");
                     ShowLoadoutForSlot(__instance, logic, logic.ActiveLoadoutIndex, false);
                 }
                 else
                 {
-                    FPELog.Info("OnExtra1: Final loadout stage completed. Finalizing expedition settings.");
+                    FPELog.Debug("OnExtra1: Final loadout stage completed. Finalizing expedition settings.");
                     Safe.InvokeMethod(__instance, "ConfirmExpeditionSettings");
                 }
                 return false;

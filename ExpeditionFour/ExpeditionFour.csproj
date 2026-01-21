@@ -80,6 +80,7 @@
     <Compile Include="UI\SummaryPanelExpander.cs" />
     <Compile Include="UI\ReturnSummaryFour.cs" />
     <Compile Include="UI\CombatSummaryFour.cs" />
+    <Compile Include="UI\CombatSummaryLogic.cs" />
     <Compile Include="UI\DialogueSummaryFour.cs" />
   </ItemGroup>
   <ItemGroup>

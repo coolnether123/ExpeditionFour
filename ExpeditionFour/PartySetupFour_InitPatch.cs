@@ -19,7 +19,7 @@ namespace FourPersonExpeditions
                         ?? __instance.gameObject.AddComponent<FourPersonPartyLogic>();
             logic.MaxPartySize = FourPersonConfig.MaxPartySize;
 
-            FPELog.Info("ExpeditionMainPanel: Synchronizing PartyMember components for the current party.");
+            FPELog.Debug("ExpeditionMainPanel: Synchronizing PartyMember components for the current party.");
             
             if (Safe.TryGetField(__instance, "m_partyId", out int partyId))
             {
@@ -37,7 +37,7 @@ namespace FourPersonExpeditions
                     // Update the logic controller with the synchronized member components
                     logic.AllPartyMembers.Clear();
                     logic.AllPartyMembers.AddRange(party.GetComponents<PartyMember>());
-                    FPELog.Info($"ExpeditionMainPanel: Successfully synchronized {logic.AllPartyMembers.Count} member slots.");
+                    FPELog.Debug($"ExpeditionMainPanel: Successfully synchronized {logic.AllPartyMembers.Count} member slots.");
                 }
                 else
                 {

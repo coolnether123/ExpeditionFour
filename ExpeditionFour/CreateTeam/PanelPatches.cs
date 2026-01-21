@@ -16,11 +16,11 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
 
         int index = logic.HighlightedIndices[logic.ActiveSelectionSlot];
         logic.SelectedMemberIndices[logic.ActiveSelectionSlot] = index;
-        FPELog.Info($"OnSelect Patch: Stored selection. Slot: {logic.ActiveSelectionSlot}, Character Index: {index}.");
+        FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {logic.ActiveSelectionSlot}, Character Index: {index}.");
 
         if (index != -1 && logic.ActiveSelectionSlot < logic.MaxPartySize - 1)
         {
-            FPELog.Info("OnSelect Patch: Advancing to next party slot.");
+            FPELog.Debug("OnSelect Patch: Advancing to next party slot.");
             logic.ActiveSelectionSlot++;
 
             // Find the first available character to be the default highlight for the new slot.
@@ -33,7 +33,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         }
         else
         {
-            FPELog.Info("OnSelect Patch: Finalizing selections and showing map.");
+            FPELog.Debug("OnSelect Patch: Finalizing selections and showing map.");
             Safe.InvokeMethod(__instance, "UpdatePartyMembers");
             __instance.ShowMapMenu();
             return false;
@@ -50,7 +50,7 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return true;
 
-        FPELog.Info("UpdatePartyMembers Patch: Assigning selected family members to the party.");
+        FPELog.Debug("UpdatePartyMembers Patch: Assigning selected family members to the party.");
         int max = Mathf.Min(logic.MaxPartySize, logic.AllPartyMembers.Count);
         var elig = __instance.eligiblePeople;
         for (int i = 0; i < max; i++)
@@ -65,7 +65,7 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
             if ((UnityEngine.Object)partyMember.person != (UnityEngine.Object)fam)
             {
                 string famName = (fam != null) ? fam.firstName : "Nobody";
-                FPELog.Info($"UpdatePartyMembers Patch: Assigning '{famName}' to party slot {i}.");
+                FPELog.Debug($"UpdatePartyMembers Patch: Assigning '{famName}' to party slot {i}.");
                 partyMember.person = fam;
                 partyMember.ClearAllEquipment();
             }
@@ -129,11 +129,6 @@ public static class ExpeditionMainPanelNew_CalculateRouteDistance_Patch
             Safe.TryGetField(ExplorationManager.Instance, "m_parties", out System.Collections.IDictionary parties);
             int pCount = parties != null ? parties.Count : -1;
             
-            // Attempt to get max parties via more robust reflection
-            int maxParties = -1;
-            var maxProp = ExplorationManager.Instance.GetType().GetProperty("MaxParties", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
-            if (maxProp != null) maxParties = (int)maxProp.GetValue(ExplorationManager.Instance, null);
-            if (maxParties == -1) maxParties = Safe.GetFieldOrDefault(ExplorationManager.Instance, "m_maxParties", -1);
 
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             sb.Append($"CalculateRouteDistance: Count={selectedCount}, Water={waterRequired}. GlobalPartyStatus: ActiveParties={pCount} (includes current). Parties: ");
@@ -305,7 +300,7 @@ public static class ExpeditionMainPanelNew_FinaliseExpedition_Patch
         float waterRequired = Safe.GetFieldOrDefault(__instance, "m_waterRequired", 0f);
         int petrolRequired = Safe.GetFieldOrDefault(__instance, "m_petrolRequired", 0);
         
-        FPELog.Info($"FinaliseExpedition: Deducting Resources. Water={waterRequired}, Petrol={petrolRequired}");
+        FPELog.Debug($"FinaliseExpedition: Deducting Resources. Water={waterRequired}, Petrol={petrolRequired}");
 
         if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null)
         {

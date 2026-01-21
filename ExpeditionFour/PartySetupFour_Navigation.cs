@@ -27,7 +27,7 @@ namespace FourPersonExpeditions
             int nextAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, 1);
 
             logic.HighlightedIndices[activeSlot] = nextAvailableIndex;
-            FPELog.Info($"Member Navigation: Highlighting character index {nextAvailableIndex} for selection slot {activeSlot}.");
+            FPELog.Debug($"Member Navigation: Highlighting character index {nextAvailableIndex} for selection slot {activeSlot}.");
 
             // Refresh the page to update the avatar and stats displays
             __instance.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
@@ -57,7 +57,7 @@ namespace FourPersonExpeditions
             int prevAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, -1);
 
             logic.HighlightedIndices[activeSlot] = prevAvailableIndex;
-            FPELog.Info($"Member Navigation: Highlighting character index {prevAvailableIndex} for selection slot {activeSlot}.");
+            FPELog.Debug($"Member Navigation: Highlighting character index {prevAvailableIndex} for selection slot {activeSlot}.");
 
             __instance.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
             return false;

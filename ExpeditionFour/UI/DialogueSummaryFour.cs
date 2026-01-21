@@ -30,14 +30,19 @@ namespace FourPersonExpeditions.UI
             // Fix close button depth
             SummaryPanelExpander.FixCloseButton(__instance.gameObject);
 
-            // Apply custom layout for 3-4 member parties
-            SummaryPanelExpander.ApplyCustomLayout(
-                __instance,
-                SummaryPanelExpander.GetPlayerControlledCount(),
-                summariesFieldName: "characterSummaries",
-                gridFieldName: "member_grid",
-                layout: SummaryPanelLayout.Default
-            );
+            // Get the list of summaries
+            if (!Safe.TryGetField(__instance, "characterSummaries", out System.Collections.Generic.List<EncounterSummaryCharacter> summaries))
+            {
+                return;
+            }
+
+            // Add or get our logic component for pagination and auto-advance
+            var logic = __instance.gameObject.GetComponent<CombatSummaryLogic>();
+            if (logic == null) logic = __instance.gameObject.AddComponent<CombatSummaryLogic>();
+
+            // Initialize logic with the panel and the summary list
+            // This will handle showing only the first page and setting up arrows
+            logic.Initialize(__instance, summaries);
         }
     }
 }

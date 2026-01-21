@@ -43,7 +43,7 @@ namespace FourPersonExpeditions.UI
                 return true; // Already expanded
             }
 
-            FPELog.Info($"SummaryPanelExpander: Expanding {panelInstance.GetType().Name} from {summaries.Count} to {TARGET_SLOT_COUNT} slots");
+            FPELog.Debug($"SummaryPanelExpander: Expanding {panelInstance.GetType().Name} from {summaries.Count} to {TARGET_SLOT_COUNT} slots");
 
             // Get the template for cloning
             var template = summaries[0];

@@ -37,7 +37,7 @@ namespace FourPersonExpeditions.CombatFixes
                     return true; // Let the original method handle text display timing.
                 }
 
-                FPELog.Info("[DialogueStageFix] Intercepting NPC-initiated encounter to prevent soft-lock.");
+                FPELog.Debug("[DialogueStageFix] Intercepting NPC-initiated encounter to prevent soft-lock.");
 
                 if (!Safe.TryCall<BaseDialogueStage.DialogueState>(__instance, "State_Npc_PlayerOpeningResponse", out var nextState))
                 {
@@ -78,7 +78,7 @@ namespace FourPersonExpeditions.CombatFixes
             int target = Mathf.Max(list.Count, FourPersonConfig.MaxPartySize);
             if (list.Count >= target) return;
 
-            FPELog.Info($"[CombatSetup] Expanding player character slots from {list.Count} to {target}.");
+            FPELog.Debug($"[CombatSetup] Expanding player character slots from {list.Count} to {target}.");
 
             var last = list[list.Count - 1];
             var parent = last.transform.parent;
@@ -129,9 +129,9 @@ namespace FourPersonExpeditions.CombatFixes
                         finalBreachHome += new Vector3(-300f, 105f, 0f);
                         finalAboveHome += new Vector3(-300f, 105f, 0f);
 
-                        FPELog.Info($"[CombatSetup] Fourth Person - Field Home Position: X={finalFieldHome.x}, Y={finalFieldHome.y}, Z={finalFieldHome.z}");
-                        FPELog.Info($"[CombatSetup] Fourth Person - Breach Home Position: X={finalBreachHome.x}, Y={finalBreachHome.y}, Z={finalBreachHome.z}");
-                        FPELog.Info($"[CombatSetup] Fourth Person - Above Breach Home Position: X={finalAboveHome.x}, Y={finalAboveHome.y}, Z={finalAboveHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Field Home Position: X={finalFieldHome.x}, Y={finalFieldHome.y}, Z={finalFieldHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Breach Home Position: X={finalBreachHome.x}, Y={finalBreachHome.y}, Z={finalBreachHome.z}");
+                        FPELog.Debug($"[CombatSetup] Fourth Person - Above Breach Home Position: X={finalAboveHome.x}, Y={finalAboveHome.y}, Z={finalAboveHome.z}");
                     }
 
                     Safe.SetField(encChar, "field_home_position", finalFieldHome);
