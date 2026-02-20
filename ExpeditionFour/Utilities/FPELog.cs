@@ -23,6 +23,12 @@ namespace FourPersonExpeditions
             else MMLog.WriteWarning(msg, MMLog.LogCategory.General);
         }
 
+        public static void Error(string msg)
+        {
+            if (Log != null) Log.Error(msg);
+            else MMLog.WriteError(msg, MMLog.LogCategory.General);
+        }
+
         public static void Debug(string msg)
         {
             if (FpeDebug.Enabled)

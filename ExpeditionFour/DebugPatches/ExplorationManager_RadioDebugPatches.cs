@@ -14,16 +14,16 @@ namespace FourPersonExpeditions.DebugPatches
     {
         public static void Prefix(ExplorationManager __instance, ExplorationManager.RadioDialogParams radioParams)
         {
-            FPELog.Info($"Radio Debug: ShowRadioDialog requested. Msg={radioParams.questionTextId}, Caller={radioParams.caller?.firstName}");
+            FPELog.Debug($"Radio Debug: ShowRadioDialog requested. Msg={radioParams.questionTextId}, Caller={radioParams.caller?.firstName}");
             
             float waitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
             float timeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
-            FPELog.Info($"Radio Debug: Current Timers [Wait={waitTimer}, Timeout={timeoutTimer}]");
+            FPELog.Debug($"Radio Debug: Current Timers [Wait={waitTimer}, Timeout={timeoutTimer}]");
 
             Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
             if (shelterRadio != null)
             {
-                FPELog.Info($"Radio Debug: Shelter Radio found. IncomingTransmission={shelterRadio.incomingTransmission}");
+                FPELog.Debug($"Radio Debug: Shelter Radio found. IncomingTransmission={shelterRadio.incomingTransmission}");
             }
         }
 
@@ -35,7 +35,7 @@ namespace FourPersonExpeditions.DebugPatches
             Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
             bool incoming = shelterRadio != null && shelterRadio.incomingTransmission;
 
-            FPELog.Info($"Radio Debug: Dialog Setup Finished. Result={__result}, Timers=[{waitTimer}/{timeoutTimer}], Incoming={incoming}");
+            FPELog.Debug($"Radio Debug: Dialog Setup Finished. Result={__result}, Timers=[{waitTimer}/{timeoutTimer}], Incoming={incoming}");
         }
     }
 
@@ -45,13 +45,13 @@ namespace FourPersonExpeditions.DebugPatches
         public static void Prefix(ExplorationManager __instance)
         {
             float timeout = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
-            FPELog.Info($"Radio Debug: OnTransmissionAcceptedButton. TimeoutBefore={timeout}");
+            FPELog.Debug($"Radio Debug: OnTransmissionAcceptedButton. TimeoutBefore={timeout}");
         }
 
         public static void Postfix(ExplorationManager __instance)
         {
             float timeout = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
-            FPELog.Info($"Radio Debug: OnTransmissionAcceptedButton finished. TimeoutAfter={timeout}");
+            FPELog.Debug($"Radio Debug: OnTransmissionAcceptedButton finished. TimeoutAfter={timeout}");
         }
     }
 
@@ -61,14 +61,14 @@ namespace FourPersonExpeditions.DebugPatches
         public static void Prefix(ExplorationManager __instance)
         {
             float timeout = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
-            FPELog.Info($"Radio Debug: OnTransmissionRejectedButton. TimeoutBefore={timeout}");
+            FPELog.Debug($"Radio Debug: OnTransmissionRejectedButton. TimeoutBefore={timeout}");
         }
 
         public static void Postfix(ExplorationManager __instance)
         {
             float timeout = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
             float wait = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
-            FPELog.Info($"Radio Debug: OnTransmissionRejectedButton finished. Timeout={timeout}, Wait={wait}");
+            FPELog.Debug($"Radio Debug: OnTransmissionRejectedButton finished. Timeout={timeout}, Wait={wait}");
         }
     }
 
@@ -78,14 +78,14 @@ namespace FourPersonExpeditions.DebugPatches
         public static void Prefix(ExplorationManager __instance, RadioDialogPanel.RadioResponse response)
         {
             Safe.TryGetField(__instance, "m_radioCallback", out ExplorationManager.RadioDialogCallback callback);
-            FPELog.Info($"Radio Debug: RadioDialogClosed called. Response={response}, HasCallback={callback != null}");
+            FPELog.Debug($"Radio Debug: RadioDialogClosed called. Response={response}, HasCallback={callback != null}");
         }
 
         public static void Postfix(ExplorationManager __instance)
         {
             Safe.TryGetField(__instance, "m_radioCallback", out ExplorationManager.RadioDialogCallback callback);
             float wait = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
-            FPELog.Info($"Radio Debug: RadioDialogClosed finished. HasCallback={callback != null}, WaitAfter={wait}");
+            FPELog.Debug($"Radio Debug: RadioDialogClosed finished. HasCallback={callback != null}, WaitAfter={wait}");
         }
     }
 }

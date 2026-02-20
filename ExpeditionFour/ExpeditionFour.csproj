@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\mods\ExpeditionFour\Assemblies\</OutputPath>
+    <OutputPath>..\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -70,13 +70,13 @@
     <Compile Include="Utilities\FPELog.cs" />
     <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
+    <Compile Include="ExpeditionFourPatches.cs" />
     <Compile Include="PartySetupFour_Navigation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SavePatches\AddMemberToParty.cs" />
     <Compile Include="SavePatches\FixOnLoad_AwayFlags.cs" />
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
-    <!-- Temporarily disable radio timer save patch until boundary is found -->
-    <!-- <Compile Include="SavePatches\RadioTimerSavePatch.cs" /> -->
+    <Compile Include="ExpeditionAppFixes.cs" />
     <Compile Include="UI\SummaryPanelExpander.cs" />
     <Compile Include="UI\ReturnSummaryFour.cs" />
     <Compile Include="UI\CombatSummaryFour.cs" />

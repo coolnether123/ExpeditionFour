@@ -32,8 +32,8 @@ public class LoadoutController : MonoBehaviour
         }
 
         int currentMemberSlot = _partyLogic.AllPartyMembers.IndexOf(displayedMember);
-        FPELog.Info($"[DEBUG] OnConfirmClicked: currentMemberSlot = {currentMemberSlot}");
-        FPELog.Info($"[DEBUG] OnConfirmClicked: SelectedMemberIndices = [{string.Join(", ", _partyLogic.SelectedMemberIndices.Select(x => x.ToString()).ToArray())}]");
+        FPELog.Debug($"OnConfirmClicked: currentMemberSlot={currentMemberSlot}");
+        FPELog.Debug($"OnConfirmClicked: SelectedMemberIndices=[{string.Join(", ", _partyLogic.SelectedMemberIndices.Select(x => x.ToString()).ToArray())}]");
 
         if (currentMemberSlot < 0)
         {
@@ -44,7 +44,7 @@ public class LoadoutController : MonoBehaviour
         int nextMemberSlot = -1;
         for (int i = currentMemberSlot + 1; i < _partyLogic.MaxPartySize; i++)
         {
-            FPELog.Info($"[DEBUG] OnConfirmClicked: Checking i = {i}, SelectedMemberIndices[i] = {_partyLogic.SelectedMemberIndices[i]}");
+            FPELog.Debug($"OnConfirmClicked: checking i={i}, selected={_partyLogic.SelectedMemberIndices[i]}");
             if (_partyLogic.SelectedMemberIndices[i] != -1)
             {
                 nextMemberSlot = i;
@@ -52,12 +52,18 @@ public class LoadoutController : MonoBehaviour
             }
         }
 
-        FPELog.Info($"[DEBUG] OnConfirmClicked: Final nextMemberSlot = {nextMemberSlot}");
+        FPELog.Debug($"OnConfirmClicked: final nextMemberSlot={nextMemberSlot}");
 
         if (nextMemberSlot != -1)
         {
+            if (nextMemberSlot < 0 || nextMemberSlot >= _partyLogic.AllPartyMembers.Count)
+            {
+                FPELog.Error($"[FPE] OnConfirmClicked: nextMemberSlot {nextMemberSlot} is out of bounds for AllPartyMembers (count={_partyLogic.AllPartyMembers.Count}).");
+                return;
+            }
+
             var nextPartyMember = _partyLogic.AllPartyMembers[nextMemberSlot];
-            FPELog.Info($"Loadout button clicked for slot {currentMemberSlot}. Advancing to slot {nextMemberSlot}. Initializing loadout for {nextPartyMember.person?.firstName}.");
+            FPELog.Debug($"OnConfirmClicked: advancing loadout {currentMemberSlot} -> {nextMemberSlot} for {nextPartyMember.person?.firstName}");
             _loadoutPanel.InitializeLoadout(nextPartyMember, false);
 
             var audioSource = _mainPanel.GetComponent<AudioSource>() ?? _mainPanel.gameObject.AddComponent<AudioSource>();
@@ -65,7 +71,7 @@ public class LoadoutController : MonoBehaviour
         }
         else
         {
-            FPELog.Info($"Final loadout button clicked for slot {currentMemberSlot}. Finalizing expedition.");
+            FPELog.Info($"Finalizing expedition from loadout slot {currentMemberSlot}.");
             Safe.InvokeMethod(_mainPanel, "ConfirmExpeditionSettings");
         }
     }

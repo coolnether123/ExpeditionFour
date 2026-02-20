@@ -15,18 +15,26 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         if (logic == null || __instance.PartySetup == null || !__instance.PartySetup.activeInHierarchy) return true;
 
         int index = logic.HighlightedIndices[logic.ActiveSelectionSlot];
+        
+        // Temporarily store selection for validation
+        int oldSelection = logic.SelectedMemberIndices[logic.ActiveSelectionSlot];
         logic.SelectedMemberIndices[logic.ActiveSelectionSlot] = index;
+
+        // Perform Validation Checks (Empty Shelter, Loyalty, Food Poisoning)
+        if (ValidateSelection(__instance, logic))
+        {
+            // Validation failed, restore previous selection and stay on page
+            logic.SelectedMemberIndices[logic.ActiveSelectionSlot] = oldSelection;
+            return false;
+        }
+
         FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {logic.ActiveSelectionSlot}, Character Index: {index}.");
 
         if (index != -1 && logic.ActiveSelectionSlot < logic.MaxPartySize - 1)
         {
             FPELog.Debug("OnSelect Patch: Advancing to next party slot.");
             logic.ActiveSelectionSlot++;
-
-            // Find the first available character to be the default highlight for the new slot.
-            // Default the next slot to 'None' (-1) to force manual selection, as requested.
-            int firstAvailable = -1;
-            logic.HighlightedIndices[logic.ActiveSelectionSlot] = firstAvailable;
+            logic.HighlightedIndices[logic.ActiveSelectionSlot] = -1; // Force user to pick
 
             __instance.partySetupScript?.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
             return false;
@@ -39,6 +47,138 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
             return false;
         }
     }
+
+    private static bool ValidateSelection(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    {
+        // 1. Loyalty Check
+        if (CheckLoyalty4(panel, logic)) return true;
+        
+        // 2. Food Poisoning Check
+        if (CheckFoodPoisoning4(panel, logic)) return true;
+        
+        // 3. Empty Shelter Check
+        if (CheckEmptyShelter4(panel, logic)) return true;
+
+        // 4. Hazmat Check (Stasis mode)
+        if ((Object)GameModeManager.instance != (Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
+        {
+            if (!CheckHazmat4(panel, logic)) return true;
+        }
+        
+        return false;
+    }
+
+    private static bool CheckEmptyShelter4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    {
+        List<FamilyMember> stayingBehind = new List<FamilyMember>();
+        if (FamilyManager.Instance != null)
+            stayingBehind.AddRange(FamilyManager.Instance.GetAllFamilyMembers());
+
+        var elig = panel.eligiblePeople;
+        foreach (int selIndex in logic.SelectedMemberIndices)
+        {
+            if (selIndex >= 0 && selIndex < elig.Count)
+                stayingBehind.Remove(elig[selIndex]);
+        }
+
+        int count = 0;
+        foreach (var member in stayingBehind)
+        {
+            if (member != null && !member.isDead && !member.isCatatonic && !member.isUncontrollable && !member.isAway && !member.IsUnconscious)
+                count++;
+        }
+
+        if (count <= 0)
+        {
+            MessageBox.Show(MessageBoxButtons.Okay_Button, "UI.ExpeditionPartyEmptyWarning");
+            return true;
+        }
+        return false;
+    }
+
+    private static bool CheckLoyalty4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    {
+        var elig = panel.eligiblePeople;
+        float disloyalNeedThreshold = ExplorationManager.Instance.disloyalNeedThreshold;
+        bool isVeryDisloyal = false;
+        bool hasHighNeedsDisloyal = false;
+
+        foreach (int selIndex in logic.SelectedMemberIndices)
+        {
+            if (selIndex < 0 || selIndex >= elig.Count) continue;
+            var person = elig[selIndex];
+            
+            if (!person.isLoyal)
+            {
+                if (person.loyalty <= FamilyMember.LoyaltyEnum.Cautious)
+                    isVeryDisloyal = true;
+                
+                BehaviourStats stats = person.stats;
+                if (stats.hunger.NormalizedValue >= disloyalNeedThreshold || 
+                    stats.thirst.NormalizedValue >= disloyalNeedThreshold || 
+                    stats.fatigue.NormalizedValue >= disloyalNeedThreshold || 
+                    stats.toilet.NormalizedValue >= disloyalNeedThreshold || 
+                    stats.dirtiness.NormalizedValue >= disloyalNeedThreshold || 
+                    stats.stress.NormalizedValue >= disloyalNeedThreshold)
+                    hasHighNeedsDisloyal = true;
+            }
+        }
+
+        if (isVeryDisloyal)
+            MessageBox.Show(MessageBoxButtons.Okay_Button, "UI.ExpeditionPartyDisloyalWarning");
+        else if (hasHighNeedsDisloyal)
+            MessageBox.Show(MessageBoxButtons.Okay_Button, "UI.ExpeditionPartyDisloyalWarning.Stats");
+
+        return isVeryDisloyal || hasHighNeedsDisloyal;
+    }
+
+    private static bool CheckFoodPoisoning4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    {
+        var elig = panel.eligiblePeople;
+        foreach (int selIndex in logic.SelectedMemberIndices)
+        {
+            if (selIndex < 0 || selIndex >= elig.Count) continue;
+            var person = elig[selIndex];
+            if (person.illness != null && person.illness.foodPoisoning.isActive)
+            {
+                MessageBox.Show(MessageBoxButtons.Okay_Button, "UI.FoodPoisonWarning");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool CheckHazmat4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    {
+        var hazmatScript = ObjectManager.Instance.GetObjectsOfType(ObjectManager.ObjectType.HazmatSuits_Stasis)[0] as Obj_HazmatSuit_Stasis;
+        if (hazmatScript == null) return true;
+
+        var elig = panel.eligiblePeople;
+        foreach (int selIndex in logic.SelectedMemberIndices)
+        {
+            if (selIndex < 0 || selIndex >= elig.Count) continue;
+            var person = elig[selIndex];
+            int suitIdx = -1;
+            switch (person.firstName)
+            {
+                case "Gregory": suitIdx = 0; break;
+                case "Nancy":   suitIdx = 1; break;
+                case "Mark":    suitIdx = 2; break;
+                case "Lucy":    suitIdx = 3; break;
+            }
+            
+            if (suitIdx != -1)
+            {
+                bool hasSuit = person.HazmatNumber != -1 || hazmatScript.IsSuitAvailable(suitIdx);
+                if (!hasSuit)
+                {
+                    MessageBox.Show(MessageBoxButtons.Okay_Button, "Text.UI.NoHazmatWarning");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
 
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), "UpdatePartyMembers")]
@@ -49,6 +189,8 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
         if (__instance == null) return true;
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return true;
+
+        EnsurePartyMemberSlots(__instance, logic);
 
         FPELog.Debug("UpdatePartyMembers Patch: Assigning selected family members to the party.");
         int max = Mathf.Min(logic.MaxPartySize, logic.AllPartyMembers.Count);
@@ -90,99 +232,43 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
         }
         return false;
     }
-}
 
-
-
-
-[HarmonyPatch(typeof(ExpeditionMainPanelNew), "CalculateRouteDistance")]
-public static class ExpeditionMainPanelNew_CalculateRouteDistance_Patch
-{
-    public static void Postfix(ExpeditionMainPanelNew __instance)
+    private static void EnsurePartyMemberSlots(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
-        if (__instance == null) return;
-        var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
-        if (logic == null) return;
+        if (panel == null || logic == null || ExplorationManager.Instance == null) return;
+        if (!Safe.TryGetField(panel, "m_partyId", out int partyId)) return;
 
-        int selectedCount = 0;
-        for (int i = 0; i < logic.SelectedMemberIndices.Count; i++)
-            if (logic.SelectedMemberIndices[i] != -1) selectedCount++;
-        selectedCount = Mathf.Clamp(selectedCount, 0, logic.MaxPartySize);
+        var party = ExplorationManager.Instance.GetParty(partyId);
+        if (party == null) return;
 
-        float waterRequired = 0f;
-        int petrolRequired = 0;
-
-        if (!Safe.TryGetField(__instance, "m_routeDistance", out float routeDistance))
-            return;
-
-        if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null &&
-            GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
+        int requiredSlots = 0;
+        for (int i = 0; i < logic.MaxPartySize && i < logic.SelectedMemberIndices.Count; i++)
         {
-            waterRequired = routeDistance / ExplorationManager.Instance.worldUnitsPerMile * ExplorationManager.Instance.m_batteryPerMile;
-            waterRequired *= selectedCount;
+            if (logic.SelectedMemberIndices[i] != -1)
+                requiredSlots = i + 1;
         }
-        else
+
+        requiredSlots = Mathf.Max(requiredSlots, 2);
+
+        var components = party.GetComponents<PartyMember>();
+        for (int i = components.Length; i < requiredSlots; i++)
         {
-            waterRequired = routeDistance / ExplorationManager.Instance.worldUnitsPerMile * ExplorationManager.Instance.waterPerPersonPerMile;
-            waterRequired *= selectedCount;
-            
-            Safe.TryGetField(ExplorationManager.Instance, "m_parties", out System.Collections.IDictionary parties);
-            int pCount = parties != null ? parties.Count : -1;
-            
-
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            sb.Append($"CalculateRouteDistance: Count={selectedCount}, Water={waterRequired}. GlobalPartyStatus: ActiveParties={pCount} (includes current). Parties: ");
-            if (parties != null)
+            var added = ExplorationManager.Instance.AddMemberToParty(partyId);
+            if (added == null)
             {
-                foreach (System.Collections.DictionaryEntry entry in parties)
-                {
-                    object p = entry.Value;
-                    string state = "Unknown";
-                    int mCount = 0;
-                    if (p != null) 
-                    {
-                        Safe.TryGetField(p, "state", out object stateObj);
-                        state = stateObj?.ToString() ?? "NullState";
-                        if (Safe.TryGetField(p, "m_partyMembers", out System.Collections.IList mems) && mems != null)
-                            mCount = mems.Count;
-                    }
-                    sb.Append($"[ID {entry.Key}: {state} ({mCount} mems)] ");
-                }
-            }
-            // Removed verbose party status logging - called too frequently during route selection
-            // FPELog.Info(sb.ToString());
-
-            bool useVehicle = Safe.GetFieldOrDefault(__instance, "useVehicle", false);
-            bool useHorse = Safe.GetFieldOrDefault(__instance, "useHorse", false);
-            var vehicle = Safe.GetFieldOrDefault<Obj_CamperVan>(__instance, "m_vehicle", null);
-            if (useVehicle && vehicle != null)
-            {
-                petrolRequired = Mathf.FloorToInt(routeDistance / ExplorationManager.Instance.worldUnitsPerMile * vehicle.PetrolPerPersonPerMile * Mathf.Max(1, selectedCount));
-                waterRequired *= ExplorationManager.Instance.RVWaterModifier;
-            }
-            else if (useHorse)
-            {
-                petrolRequired = 0;
-                waterRequired *= ExplorationManager.Instance.HorseWaterModifier;
-            }
-            else
-            {
-                petrolRequired = 0;
+                FPELog.Warn($"[FPE] UpdatePartyMembers: Failed to add slot {i} for party {partyId}.");
+                break;
             }
         }
 
-        Safe.SetField(__instance, "m_waterRequired", waterRequired);
-        Safe.SetField(__instance, "m_petrolRequired", petrolRequired);
-
-        if ((UnityEngine.Object)GameModeManager.instance == (UnityEngine.Object)null || GameModeManager.instance.currentGameMode != GameModeManager.GameMode.Stasis)
-        {
-            if (__instance.waterRequiredLabel != null && (UnityEngine.Object)WaterManager.Instance != (UnityEngine.Object)null)
-                __instance.waterRequiredLabel.text = Mathf.Ceil(waterRequired).ToString("N0") + "/" + WaterManager.Instance.StoredWater.ToString("N0");
-            if (__instance.petrolRequiredLabel != null)
-                __instance.petrolRequiredLabel.text = Mathf.Ceil((float)petrolRequired).ToString("N0") + "/" + InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol).ToString("N0");
-        }
+        components = party.GetComponents<PartyMember>();
+        logic.AllPartyMembers.Clear();
+        logic.AllPartyMembers.AddRange(components);
     }
 }
+
+
+
 
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), "Update")]
 public static class ExpeditionMainPanelNew_Update_Patch
@@ -221,7 +307,30 @@ public static class ExpeditionMainPanelNew_Update_Patch
                              (InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolReq);
         }
 
-        bool isReady = anyoneSelected && hasRoute && enoughResources;
+        bool allSelectedCanMove = true;
+        if (anyoneSelected)
+        {
+            var elig = __instance.eligiblePeople;
+            if (elig == null)
+            {
+                allSelectedCanMove = false;
+            }
+            else
+            {
+                foreach (int idx in logic.SelectedMemberIndices)
+                {
+                    if (idx < 0 || idx >= elig.Count) continue;
+                    var member = elig[idx];
+                    if (member != null && member.GetWalkSpeed() <= 0f)
+                    {
+                        allSelectedCanMove = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        bool isReady = anyoneSelected && hasRoute && enoughResources && allSelectedCanMove;
 
         // Override the vanilla field
         Safe.SetField(__instance, "m_isReadyToGo", isReady);
@@ -236,104 +345,5 @@ public static class ExpeditionMainPanelNew_Update_Patch
         {
             __instance.m_mapScreenLegend.SetButtonEnabled(LegendContainer.ButtonEnum.XButton, isReady);
         }
-    }
-}
-
-[HarmonyPatch(typeof(ExpeditionMainPanelNew), "FinaliseExpedition")]
-public static class ExpeditionMainPanelNew_FinaliseExpedition_Patch
-{
-    public static bool Prefix(ExpeditionMainPanelNew __instance, ref bool __result)
-    {
-        if (__instance == null) return true;
-        var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
-        if (logic == null) return true;
-
-        if (!Safe.TryGetField(__instance, "m_loadoutScript", out ExpeditionLoadout loadout))
-            return true;
-        if (!Safe.TryGetField(__instance, "m_partyId", out int partyId))
-            return true;
-        
-        var route = __instance.route;
-
-        int selectedCount = 0;
-        for (int i = 0; i < logic.SelectedMemberIndices.Count; i++) if (logic.SelectedMemberIndices[i] != -1) selectedCount++;
-        if (selectedCount == 0 || route == null || route.Count == 0)
-        {
-            __result = false;
-            return false;
-        }
-
-        for (int i = 0; i < logic.AllPartyMembers.Count; i++)
-        {
-            var pm = logic.AllPartyMembers[i];
-            if (pm == null) continue;
-            bool isSelected = (i < logic.SelectedMemberIndices.Count && logic.SelectedMemberIndices[i] != -1);
-            if (isSelected && (UnityEngine.Object)pm.person != (UnityEngine.Object)null)
-            {
-                pm.person.job_queue.ForceClear();
-                pm.person.ai_queue.ForceClear();
-                foreach (var eq in pm.GetEquippedItems())
-                    InventoryManager.Instance.RemoveItemsOfType(eq.m_type, eq.m_count);
-            }
-            else
-            {
-                ExplorationManager.Instance.RemoveMemberFromParty(partyId, pm);
-            }
-        }
-
-        int amountWater = 0, amountRation = 0, amountMeat = 0, amountDesperate = 0;
-        if (loadout != null && loadout.carriedItems != null)
-        {
-            foreach (var itemSlot in loadout.carriedItems.GetItems())
-            {
-                InventoryManager.Instance.RemoveItemsOfType(itemSlot.m_type, itemSlot.m_count);
-                ExplorationManager.Instance.AddToPartyItems(partyId, itemSlot.m_type, itemSlot.m_count);
-                if (itemSlot.m_type == ItemManager.ItemType.Water) amountWater += itemSlot.m_count;
-                else if (itemSlot.m_type == ItemManager.ItemType.Ration) amountRation += itemSlot.m_count;
-                else if (itemSlot.m_type == ItemManager.ItemType.Meat) amountMeat += itemSlot.m_count;
-                else if (itemSlot.m_type == ItemManager.ItemType.DesperateMeat) amountDesperate += itemSlot.m_count;
-            }
-        }
-
-        ExplorationManager.Instance.SetRoute(partyId, new List<Vector2>(route));
-
-        float waterRequired = Safe.GetFieldOrDefault(__instance, "m_waterRequired", 0f);
-        int petrolRequired = Safe.GetFieldOrDefault(__instance, "m_petrolRequired", 0);
-        
-        FPELog.Debug($"FinaliseExpedition: Deducting Resources. Water={waterRequired}, Petrol={petrolRequired}");
-
-        if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null)
-        {
-            if (GameModeManager.instance.currentGameMode != GameModeManager.GameMode.Stasis)
-            {
-                if (WaterManager.Instance.UseWater(waterRequired))
-                    ExplorationManager.Instance.SetWater(partyId, waterRequired, WaterManager.Instance.Contamination);
-            }
-            else
-            {
-                ExplorationManager.Instance.SetBattery(partyId, waterRequired);
-            }
-        }
-
-        if (InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolRequired)
-        {
-            InventoryManager.Instance.RemoveItemsOfType(ItemManager.ItemType.Petrol, petrolRequired);
-            ExplorationManager.Instance.SetPetrol(partyId, petrolRequired);
-        }
-
-        if ((UnityEngine.Object)WaterManager.Instance != (UnityEngine.Object)null && amountWater > 0)
-            WaterManager.Instance.UseWater((float)amountWater);
-        if ((UnityEngine.Object)FoodManager.Instance != (UnityEngine.Object)null)
-        {
-            if (amountRation > 0) FoodManager.Instance.TakeRations(amountRation);
-            if (amountMeat > 0) FoodManager.Instance.TakeMeat(amountMeat);
-            if (amountDesperate > 0) FoodManager.Instance.TakeDesperateMeat(amountDesperate);
-        }
-
-        if ((UnityEngine.Object)TutorialManager.Instance != (UnityEngine.Object)null)
-            TutorialManager.Instance.SetPopupSeen(TutorialManager.PopupType.ExpeditionReminder);
-
-        __result = true;
-        return false;
     }
 }

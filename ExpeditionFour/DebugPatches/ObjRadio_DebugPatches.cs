@@ -12,7 +12,7 @@ namespace FourPersonExpeditions.DebugPatches
     {
         public static void Prefix(bool value)
         {
-            FPELog.Info($"Radio Debug: Obj_Radio.incomingTransmission set to {value}.");
+            FPELog.Debug($"Radio Debug: Obj_Radio.incomingTransmission set to {value}.");
         }
     }
 
@@ -21,12 +21,12 @@ namespace FourPersonExpeditions.DebugPatches
     {
         public static void Prefix(Obj_Radio __instance)
         {
-            FPELog.Info($"Radio Debug: Obj_Radio.AcceptTransmission called. StateBefore={__instance.incomingTransmission}");
+            FPELog.Debug($"Radio Debug: Obj_Radio.AcceptTransmission called. StateBefore={__instance.incomingTransmission}");
         }
 
         public static void Postfix(Obj_Radio __instance)
         {
-            FPELog.Info($"Radio Debug: Obj_Radio.AcceptTransmission finished. StateAfter={__instance.incomingTransmission}");
+            FPELog.Debug($"Radio Debug: Obj_Radio.AcceptTransmission finished. StateAfter={__instance.incomingTransmission}");
         }
     }
 
@@ -35,12 +35,12 @@ namespace FourPersonExpeditions.DebugPatches
     {
         public static void Prefix(Obj_Radio __instance)
         {
-            FPELog.Info($"Radio Debug: Obj_Radio.RejectTransmission called. StateBefore={__instance.incomingTransmission}");
+            FPELog.Debug($"Radio Debug: Obj_Radio.RejectTransmission called. StateBefore={__instance.incomingTransmission}");
         }
 
         public static void Postfix(Obj_Radio __instance)
         {
-            FPELog.Info($"Radio Debug: Obj_Radio.RejectTransmission finished. StateAfter={__instance.incomingTransmission}");
+            FPELog.Debug($"Radio Debug: Obj_Radio.RejectTransmission finished. StateAfter={__instance.incomingTransmission}");
         }
     }
 
@@ -50,13 +50,13 @@ namespace FourPersonExpeditions.DebugPatches
         public static void Prefix(Obj_Radio __instance, bool isActive)
         {
             bool iconActive = __instance.incomingTransmissionIcon != null && __instance.incomingTransmissionIcon.activeSelf;
-            FPELog.Info($"Radio Debug: SetIncomingTransmissionIndicator({isActive}). IconActiveBefore={iconActive}");
+            FPELog.Debug($"Radio Debug: SetIncomingTransmissionIndicator({isActive}). IconActiveBefore={iconActive}");
         }
 
         public static void Postfix(Obj_Radio __instance, bool isActive)
         {
             bool iconActive = __instance.incomingTransmissionIcon != null && __instance.incomingTransmissionIcon.activeSelf;
-            FPELog.Info($"Radio Debug: SetIncomingTransmissionIndicator finished. IconActiveAfter={iconActive}");
+            FPELog.Debug($"Radio Debug: SetIncomingTransmissionIndicator finished. IconActiveAfter={iconActive}");
         }
     }
 }

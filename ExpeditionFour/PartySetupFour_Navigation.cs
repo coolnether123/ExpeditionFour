@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace FourPersonExpeditions
 {
@@ -24,7 +25,7 @@ namespace FourPersonExpeditions
             int currentIndex = logic.HighlightedIndices[activeSlot];
 
             // Calculate the next candidate index, skipping those already tagged for the expedition
-            int nextAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, 1);
+            int nextAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, 1, elig);
 
             logic.HighlightedIndices[activeSlot] = nextAvailableIndex;
             FPELog.Debug($"Member Navigation: Highlighting character index {nextAvailableIndex} for selection slot {activeSlot}.");
@@ -54,7 +55,7 @@ namespace FourPersonExpeditions
             int activeSlot = logic.ActiveSelectionSlot;
             int currentIndex = logic.HighlightedIndices[activeSlot];
 
-            int prevAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, -1);
+            int prevAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, -1, elig);
 
             logic.HighlightedIndices[activeSlot] = prevAvailableIndex;
             FPELog.Debug($"Member Navigation: Highlighting character index {prevAvailableIndex} for selection slot {activeSlot}.");
@@ -73,7 +74,12 @@ namespace FourPersonExpeditions
         /// Finds the next available character index by cycling in the specified direction.
         /// An index of -1 represents the "Nobody" or "Slot Empty" state.
         /// </summary>
-        public static int FindNextAvailableIndex(int currentIndex, int eligibleCount, FourPersonPartyLogic logic, int direction)
+        public static int FindNextAvailableIndex(
+            int currentIndex,
+            int eligibleCount,
+            FourPersonPartyLogic logic,
+            int direction,
+            IList<FamilyMember> elig = null)
         {
             // Total options include all eligible characters plus the empty slot (-1)
             int totalOptions = eligibleCount + 1; 
@@ -87,10 +93,23 @@ namespace FourPersonExpeditions
                 // Map the wrap-around index back to -1 for "Nobody"
                 if (idx == eligibleCount) idx = -1; 
                 
-                // Return the index if the character is not already selected in another slot
-                if (!logic.IsIndexSelected(idx)) return idx;
+                // Return the index if it is valid and selectable.
+                if (idx == -1)
+                    return idx;
+
+                if (logic.IsIndexSelected(idx))
+                    continue;
+
+                if (elig != null && idx >= 0 && idx < elig.Count)
+                {
+                    var person = elig[idx];
+                    if (person != null && person.illness != null && person.illness.foodPoisoning != null && person.illness.foodPoisoning.isActive)
+                        continue;
+                }
+
+                return idx;
             }
-            return currentIndex;
+            return -1;
         }
     }
 }

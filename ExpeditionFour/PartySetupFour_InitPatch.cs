@@ -19,7 +19,7 @@ namespace FourPersonExpeditions
                         ?? __instance.gameObject.AddComponent<FourPersonPartyLogic>();
             logic.MaxPartySize = FourPersonConfig.MaxPartySize;
 
-            FPELog.Debug("ExpeditionMainPanel: Synchronizing PartyMember components for the current party.");
+            FPELog.Debug($"[FPE] ExpeditionMainPanel.OnShow: Synchronizing members. MaxPartySize={logic.MaxPartySize}");
             
             if (Safe.TryGetField(__instance, "m_partyId", out int partyId))
             {
@@ -27,22 +27,28 @@ namespace FourPersonExpeditions
 
                 if (party != null)
                 {
-                    // Confirm that the vanilla party object has enough PartyMember components for our expanded capacity
-                    int currentMembers = party.GetComponents<PartyMember>().Length;
-                    for (int i = currentMembers; i < logic.MaxPartySize; i++)
-                    {
-                        ExplorationManager.Instance.AddMemberToParty(partyId);
-                    }
+                    // Synchronize from current party components.
+                    // Additional slots are created lazily when the player actually selects more members.
+                    var components = party.GetComponents<PartyMember>();
+                    FPELog.Debug($"[FPE] Existing components on party {partyId}: {components.Length}");
 
                     // Update the logic controller with the synchronized member components
                     logic.AllPartyMembers.Clear();
-                    logic.AllPartyMembers.AddRange(party.GetComponents<PartyMember>());
-                    FPELog.Debug($"ExpeditionMainPanel: Successfully synchronized {logic.AllPartyMembers.Count} member slots.");
+                    logic.AllPartyMembers.AddRange(components);
+                    FPELog.Debug($"[FPE] Final synchronized AllPartyMembers count: {logic.AllPartyMembers.Count}");
+
+                    // Sync vanilla fields to avoid null refs in vanilla code
+                    if (logic.AllPartyMembers.Count > 0) Safe.SetField(__instance, "m_partyMember1", logic.AllPartyMembers[0]);
+                    if (logic.AllPartyMembers.Count > 1) Safe.SetField(__instance, "m_partyMember2", logic.AllPartyMembers[1]);
                 }
                 else
                 {
-                    FPELog.Warn("ExpeditionMainPanel: Failed to locate the ExplorationParty object during synchronization.");
+                    FPELog.Warn($"[FPE] OnShow: Failed to locate the ExplorationParty object for ID {partyId}.");
                 }
+            }
+            else
+            {
+                FPELog.Warn("[FPE] OnShow: m_partyId field not found on panel.");
             }
 
             // Initialize member avatar references from the vanilla setup script
@@ -55,12 +61,15 @@ namespace FourPersonExpeditions
                     logic.AllMemberAvatars.Add(setup.memberAvatar);
                     logic.AllMemberAvatars.Add(setup.memberAvatar2);
                     logic.isInitialized = true;
+                    FPELog.Debug("[FPE] OnShow: Initialized UI avatar references.");
                 }
             }
 
             logic.ResetState();
             var elig = __instance.eligiblePeople;
-            logic.HighlightedIndices[0] = (elig != null && elig.Count > 0) ? 0 : -1;
+            logic.HighlightedIndices[0] = (elig != null && elig.Count > 0)
+                ? PartySetupNavigationUtil.FindNextAvailableIndex(-1, elig.Count, logic, 1, elig)
+                : -1;
 
             // Trigger a UI refresh
             __instance.partySetupScript?.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
@@ -212,8 +221,17 @@ namespace FourPersonExpeditions
             if (characterIndexToShow >= 0 && characterIndexToShow < elig.Count)
             {
                 var p = elig[characterIndexToShow];
-                if (avatar.avatar != null) p.ColorizeAvatarSprite(avatar.avatar);
-                if (avatar.name != null) avatar.name.text = p.firstName;
+                bool isFoodPoisoned = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                if (p != null && !isFoodPoisoned)
+                {
+                    if (avatar.avatar != null) p.ColorizeAvatarSprite(avatar.avatar);
+                    if (avatar.name != null) avatar.name.text = p.firstName;
+                }
+                else
+                {
+                    if (avatar.avatar != null) avatar.avatar.sprite2D = null;
+                    if (avatar.name != null) avatar.name.text = Localization.Get("Text.Name.Nobody");
+                }
             }
             else
             {
@@ -241,7 +259,16 @@ namespace FourPersonExpeditions
             {
                 int nextIdx = (highlightedIndex + i) % (elig.Count + 1);
                 if (nextIdx == elig.Count) nextIdx = -1;
-                if (!logic.IsIndexSelected(nextIdx))
+                if (nextIdx == -1)
+                {
+                    canGoNext = true;
+                    break;
+                }
+
+                if (logic.IsIndexSelected(nextIdx)) continue;
+                var p = elig[nextIdx];
+                bool blocked = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                if (!blocked)
                 {
                     canGoNext = true;
                     break;
@@ -254,7 +281,16 @@ namespace FourPersonExpeditions
             {
                 int prevIdx = (highlightedIndex - i + elig.Count + 1) % (elig.Count + 1);
                 if (prevIdx == elig.Count) prevIdx = -1;
-                if (!logic.IsIndexSelected(prevIdx))
+                if (prevIdx == -1)
+                {
+                    canGoPrev = true;
+                    break;
+                }
+
+                if (logic.IsIndexSelected(prevIdx)) continue;
+                var p = elig[prevIdx];
+                bool blocked = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                if (!blocked)
                 {
                     canGoPrev = true;
                     break;

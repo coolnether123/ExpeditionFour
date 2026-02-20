@@ -12,7 +12,7 @@ namespace FourPersonExpeditions.DebugPatches
     {
         static void Postfix(ExplorationParty __instance)
         {
-            FPELog.Info($"Party Trace: Party #{__instance.id} - Awake called. Initial State: {__instance.state}");
+            FPELog.Debug($"Party Trace: Party #{__instance.id} - Awake called. Initial State: {__instance.state}");
         }
     }
 }

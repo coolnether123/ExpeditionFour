@@ -159,31 +159,8 @@ namespace FourPersonExpeditions.SavePatches
                 }
             }
 
-            // Repair Logic: Fix parties stuck in transition states if all members are flagged 'Away'.
-            // This happens if a save occurs during transition, or due to previous mod logic forcing 'Away'.
-            bool allAway = true;
-            foreach (var pm in memberList)
-            {
-                if (pm?.person != null && !pm.person.isAway)
-                {
-                    allAway = false;
-                    break;
-                }
-            }
-
-            if (allAway)
-            {
-                if (state == ExplorationParty.ePartyState.LeavingShelter || state == ExplorationParty.ePartyState.VehicleLeaving)
-                {
-                    FPELog.Info($"Party Load Repair: Party #{__instance.id} stuck in {state} but all members are Away. Forcing state to Traveling.");
-                    Safe.SetField(__instance, "m_state", ExplorationParty.ePartyState.Traveling);
-                }
-                else if (state == ExplorationParty.ePartyState.EnteringShelter || state == ExplorationParty.ePartyState.VehicleReturning)
-                {
-                    FPELog.Info($"Party Load Repair: Party #{__instance.id} stuck in {state} but all members are Away. Forcing state to ReturnedShowExperienceGained.");
-                    Safe.SetField(__instance, "m_state", ExplorationParty.ePartyState.ReturnedShowExperienceGained);
-                }
-            }
+            // Removed party state repair logic - vanilla handles transitions correctly
+            // and the field access was incorrect (m_stateStack vs m_state)
 
             // Removed verbose party load completion trace for release
             // FPELog.Info($"Party Load Trace Completion: {FpeDebugFmt.PartyLine(__instance)}");
@@ -216,7 +193,7 @@ namespace FourPersonExpeditions.SavePatches
         static void Prefix(ExplorationManager __instance, SaveData data)
         {
             if (!FpeDebug.Enabled) return;
-            FPELog.Info($"ExplorationManager.SaveLoad Trace ({(data?.isLoading == true ? "Loading" : "Saving")})");
+            FPELog.Debug($"ExplorationManager.SaveLoad Trace ({(data?.isLoading == true ? "Loading" : "Saving")})");
             
             float radioWaitTimer = Safe.GetFieldOrDefault(__instance, "m_radioWaitTimer", 0f);
             float radioTimeoutTimer = Safe.GetFieldOrDefault(__instance, "m_radioTimeoutTimer", 0f);
@@ -224,7 +201,7 @@ namespace FourPersonExpeditions.SavePatches
             Safe.TryCall(__instance, "GetShelterRadio", out Obj_Radio shelterRadio);
             bool incomingTransmission = (UnityEngine.Object)shelterRadio != (UnityEngine.Object)null && shelterRadio.incomingTransmission;
 
-            FPELog.Info($"Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
+            FPELog.Debug($"Radio State (Prefix): Wait={radioWaitTimer}, Timeout={radioTimeoutTimer}, Incoming={incomingTransmission}");
         }
 
         static void Postfix(ExplorationManager __instance, SaveData data)
@@ -242,23 +219,23 @@ namespace FourPersonExpeditions.SavePatches
                 bool radioDialogPanelShowing = panel != null && panel.IsShowing();
                 bool anyPartiesCallingIn = __instance.AnyPartiesCallingIn();
 
-                FPELog.Info($"ExplorationManager State (Postfix): Timers=[{radioWaitTimer}/{radioTimeoutTimer}], Incoming=[{incomingTransmission}], DialogShowing=[{radioDialogPanelShowing}], PartiesCalling=[{anyPartiesCallingIn}]");
+                FPELog.Debug($"ExplorationManager State (Postfix): Timers=[{radioWaitTimer}/{radioTimeoutTimer}], Incoming=[{incomingTransmission}], DialogShowing=[{radioDialogPanelShowing}], PartiesCalling=[{anyPartiesCallingIn}]");
 
                 if (Safe.TryGetField(__instance, "m_parties", out Dictionary<int, ExplorationParty> partiesDict) && partiesDict != null)
                 {
                     foreach (var kv in partiesDict)
                     {
                         var party = kv.Value;
-                        FPELog.Info($"Party #{party.id} State: State={party.state}, Recalled={party.isRecalled}, Returning={party.isReturning}, WalkingToShelter={party.isWalkingToShelter}");
+                        FPELog.Debug($"Party #{party.id} State: State={party.state}, Recalled={party.isRecalled}, Returning={party.isReturning}, WalkingToShelter={party.isWalkingToShelter}");
 
                         ExplorationManager.RadioDialogParams radioParams = Safe.GetFieldOrDefault<ExplorationManager.RadioDialogParams>(party, "m_radioParams", null);
                         if (radioParams != null)
                         {
-                            FPELog.Info($"Radio Params: Msg='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
+                            FPELog.Debug($"Radio Params: Msg='{radioParams.questionTextId}', Caller='{radioParams.caller?.firstName}', Receiver='{radioParams.receiver?.firstName}'");
                         }
                         
                         var radioResponse = Safe.GetFieldOrDefault(party, "m_radioResponse", default(RadioDialogPanel.RadioResponse));
-                        FPELog.Info($"Radio Response: {radioResponse}");
+                        FPELog.Debug($"Radio Response: {radioResponse}");
 
                         if (Safe.TryGetField(party, "m_partyMembers", out List<PartyMember> memberList) && memberList != null)
                         {
@@ -268,7 +245,7 @@ namespace FourPersonExpeditions.SavePatches
                                 if (fm != null)
                                 {
                                     var pos = fm.transform != null ? (Vector3?)fm.transform.position : null;
-                                    FPELog.Info($"Party Member: {fm.firstName} (isAway={fm.isAway}, left={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, jobs={fm.job_queue?.size}, ai={fm.ai_queue?.size})");
+                                    FPELog.Debug($"Party Member: {fm.firstName} (isAway={fm.isAway}, left={fm.finishedLeavingShelter}, pos={(pos.HasValue ? pos.Value.ToString() : "n/a")}, jobs={fm.job_queue?.size}, ai={fm.ai_queue?.size})");
                                 }
                             }
                         }
@@ -291,7 +268,7 @@ namespace FourPersonExpeditions.SavePatches
         static void Postfix(ExplorationParty __instance)
         {
             if (!FpeDebug.Enabled) return;
-            FPELog.Info($"Party Recall Trace: {FpeDebugFmt.PartyLine(__instance)}");
+            FPELog.Debug($"Party Recall Trace: {FpeDebugFmt.PartyLine(__instance)}");
         }
     }
 
@@ -309,7 +286,7 @@ namespace FourPersonExpeditions.SavePatches
                 if (!Safe.TryGetField(__instance, "character", out FamilyMember ch) || ch == null) return;
                 if (!Safe.TryGetField(__instance, "m_callbackAction", out object action)) return;
                 
-                FPELog.Info($"Job Trace: GoToLocation.BeginJob for {ch.firstName}, Callback={action}");
+                FPELog.Debug($"Job Trace: GoToLocation.BeginJob for {ch.firstName}, Callback={action}");
             }
             catch { /* best effort trace */ }
         }

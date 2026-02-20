@@ -16,26 +16,46 @@ namespace FourPersonExpeditions.MapPatches
     {
         public static bool Prefix(PartyMapPanel __instance)
         {
-            var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
-            if (logic == null) return true; // No paging logic, use vanilla behavior
+            try
+            {
+                var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
+                if (logic == null) return true; // No paging logic, use vanilla behavior
 
-            // Get necessary fields
-            if (!Safe.TryGetField(__instance, "m_editPartyLoadoutPanel", out EditPartyLoadoutPanel editPanel)) return true;
-            if (!Safe.TryGetField(__instance, "m_allParties", out List<ExplorationParty> allParties)) return true;
-            if (!Safe.TryGetField(__instance, "m_currentPartyIndex", out int currentPartyIndex)) return true;
+                // Get necessary fields safely
+                EditPartyLoadoutPanel editPanel = null;
+                if (Safe.TryGetField(__instance, "m_editPartyLoadoutPanel", out object editObj)) editPanel = editObj as EditPartyLoadoutPanel;
 
-            if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count) return true;
+                List<ExplorationParty> allParties = null;
+                if (Safe.TryGetField(__instance, "m_allParties", out object partiesObj)) allParties = partiesObj as List<ExplorationParty>;
 
-            // Calculate the actual member index based on the current page
-            int actualMemberIndex = logic.mapScreenPage * 2; // Page 0 -> 0, Page 1 -> 2
+                int currentPartyIndex = 0;
+                Safe.TryGetField(__instance, "m_currentPartyIndex", out currentPartyIndex);
 
-            FPELog.Info($"Opening inventory for member at actual index {actualMemberIndex} (page {logic.mapScreenPage}, slot 0)");
+                if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count)
+                {
+                    FPELog.Warn($"OpenWeaponEquipWindowP1: Missing fields or invalid index. EditPanel: {editPanel != null}, Parties: {allParties != null}, Index: {currentPartyIndex}");
+                    return true;
+                }
 
-            // Open the equipment window with the correct member index
-            editPanel.SetUpPanel(allParties[currentPartyIndex], actualMemberIndex);
-            UIPanelManager.Instance().PushPanel(editPanel);
+                // Calculate the actual member index based on the current page
+                int actualMemberIndex = logic.mapScreenPage * 2; // Page 0 -> 0, Page 1 -> 2
 
-            return false; // Skip original method
+                var party = allParties[currentPartyIndex];
+                if (party == null || actualMemberIndex >= party.membersCount) return false;
+
+                FPELog.Info($"Opening inventory for member at actual index {actualMemberIndex} (page {logic.mapScreenPage}, slot 0)");
+
+                // Open the equipment window with the correct member index
+                editPanel.SetUpPanel(party, actualMemberIndex);
+                UIPanelManager.Instance().PushPanel(editPanel);
+
+                return false; // Skip original method
+            }
+            catch (System.Exception ex)
+            {
+                FPELog.Error($"OpenWeaponEquipWindowP1 Exception: {ex}");
+                return true;
+            }
         }
     }
 
@@ -44,26 +64,46 @@ namespace FourPersonExpeditions.MapPatches
     {
         public static bool Prefix(PartyMapPanel __instance)
         {
-            var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
-            if (logic == null) return true; // No paging logic, use vanilla behavior
+            try
+            {
+                var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
+                if (logic == null) return true; // No paging logic, use vanilla behavior
 
-            // Get necessary fields
-            if (!Safe.TryGetField(__instance, "m_editPartyLoadoutPanel", out EditPartyLoadoutPanel editPanel)) return true;
-            if (!Safe.TryGetField(__instance, "m_allParties", out List<ExplorationParty> allParties)) return true;
-            if (!Safe.TryGetField(__instance, "m_currentPartyIndex", out int currentPartyIndex)) return true;
+                // Get necessary fields safely
+                EditPartyLoadoutPanel editPanel = null;
+                if (Safe.TryGetField(__instance, "m_editPartyLoadoutPanel", out object editObj)) editPanel = editObj as EditPartyLoadoutPanel;
 
-            if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count) return true;
+                List<ExplorationParty> allParties = null;
+                if (Safe.TryGetField(__instance, "m_allParties", out object partiesObj)) allParties = partiesObj as List<ExplorationParty>;
 
-            // Calculate the actual member index based on the current page
-            int actualMemberIndex = (logic.mapScreenPage * 2) + 1; // Page 0 -> 1, Page 1 -> 3
+                int currentPartyIndex = 0;
+                Safe.TryGetField(__instance, "m_currentPartyIndex", out currentPartyIndex);
 
-            FPELog.Info($"Opening inventory for member at actual index {actualMemberIndex} (page {logic.mapScreenPage}, slot 1)");
+                if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count)
+                {
+                    FPELog.Warn($"OpenWeaponEquipWindowP2: Missing fields or invalid index. EditPanel: {editPanel != null}, Parties: {allParties != null}, Index: {currentPartyIndex}");
+                    return true;
+                }
 
-            // Open the equipment window with the correct member index
-            editPanel.SetUpPanel(allParties[currentPartyIndex], actualMemberIndex);
-            UIPanelManager.Instance().PushPanel(editPanel);
+                // Calculate the actual member index based on the current page
+                int actualMemberIndex = (logic.mapScreenPage * 2) + 1; // Page 0 -> 1, Page 1 -> 3
 
-            return false; // Skip original method
+                var party = allParties[currentPartyIndex];
+                if (party == null || actualMemberIndex >= party.membersCount) return false;
+
+                FPELog.Info($"Opening inventory for member at actual index {actualMemberIndex} (page {logic.mapScreenPage}, slot 1)");
+
+                // Open the equipment window with the correct member index
+                editPanel.SetUpPanel(party, actualMemberIndex);
+                UIPanelManager.Instance().PushPanel(editPanel);
+
+                return false; // Skip original method
+            }
+            catch (System.Exception ex)
+            {
+                FPELog.Error($"OpenWeaponEquipWindowP2 Exception: {ex}");
+                return true;
+            }
         }
     }
 }

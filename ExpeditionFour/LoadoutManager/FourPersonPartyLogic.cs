@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using HarmonyLib;
@@ -88,22 +89,44 @@ namespace FourPersonExpeditions
         /// </summary>
         public void NextMapPage()
         {
-            var panel = FindObjectOfType<PartyMapPanel>();
-            if (panel == null) return;
-            
-            if (Safe.TryGetField(panel, "m_allParties", out List<ExplorationParty> allParties) &&
-                Safe.TryGetField(panel, "m_currentPartyIndex", out int currentIndex))
+            try
             {
-                if (allParties == null || currentIndex >= allParties.Count) return;
+                FPELog.Debug("NextMapPage clicked.");
+                
+                var panel = GetComponent<PartyMapPanel>();
+                if (panel == null) panel = Object.FindObjectOfType<PartyMapPanel>();
+                
+                if (panel == null)
+                {
+                    FPELog.Error("NextMapPage: PartyMapPanel not found.");
+                    return;
+                }
+                
+                List<ExplorationParty> allParties = null;
+                if (Safe.TryGetField(panel, "m_allParties", out object partiesObj)) allParties = partiesObj as List<ExplorationParty>;
+                
+                int currentIndex = 0;
+                Safe.TryGetField(panel, "m_currentPartyIndex", out currentIndex);
+
+                if (allParties == null || currentIndex >= allParties.Count || allParties[currentIndex] == null)
+                {
+                    FPELog.Warn($"NextMapPage: Invalid party state at index {currentIndex}");
+                    return;
+                }
 
                 int memberCount = allParties[currentIndex].membersCount;
-                int maxPages = Mathf.CeilToInt(memberCount / 2.0f);
+                int maxPages = Mathf.Max(1, Mathf.CeilToInt(memberCount / 2.0f));
 
                 if (mapScreenPage < maxPages - 1)
                 {
                     mapScreenPage++;
-                    Safe.InvokeMethod(panel, "UpdateUI");
+                    FPELog.Debug($"NextMapPage advancing to page {mapScreenPage}.");
+                    StartCoroutine(DelayedUpdateUI(panel));
                 }
+            }
+            catch (System.Exception ex)
+            {
+                FPELog.Error($"NextMapPage Exception: {ex}");
             }
         }
 
@@ -112,14 +135,38 @@ namespace FourPersonExpeditions
         /// </summary>
         public void PreviousMapPage()
         {
-            var panel = FindObjectOfType<PartyMapPanel>();
-            if (panel == null) return;
-
-            if (mapScreenPage > 0)
+            try
             {
-                mapScreenPage--;
-                Safe.InvokeMethod(panel, "UpdateUI");
+                FPELog.Debug("PreviousMapPage clicked.");
+                
+                var panel = GetComponent<PartyMapPanel>();
+                if (panel == null) panel = Object.FindObjectOfType<PartyMapPanel>();
+                
+                if (panel == null) return;
+
+                if (mapScreenPage > 0)
+                {
+                    mapScreenPage--;
+                    FPELog.Debug($"PreviousMapPage returning to page {mapScreenPage}.");
+                    StartCoroutine(DelayedUpdateUI(panel));
+                }
             }
+            catch (System.Exception ex)
+            {
+                FPELog.Error($"PreviousMapPage Exception: {ex}");
+            }
+        }
+
+        private IEnumerator DelayedUpdateUI(PartyMapPanel panel)
+        {
+            // Delay for one frame. This breaks the NGUI event processing chain
+            // preventing Access Violations during the click dispatcher.
+            yield return null; 
+            
+            if (panel == null) yield break;
+            
+            FPELog.Debug("DelayedUpdateUI triggering UpdateUI.");
+            Safe.InvokeMethod(panel, "UpdateUI");
         }
     }
 

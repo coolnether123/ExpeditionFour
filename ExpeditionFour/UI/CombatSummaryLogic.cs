@@ -12,6 +12,7 @@ namespace FourPersonExpeditions.UI
     {
         private MonoBehaviour _panel;
         private List<EncounterSummaryCharacter> _allSummaries;
+        private int _validSummaryCount;
         private int _currentPage = 0;
         private int _itemsPerPage = 2;
         private float _autoAdvanceDelay = 1.5f;
@@ -30,6 +31,19 @@ namespace FourPersonExpeditions.UI
             _currentPage = 0;
             _isAutoAdvancing = true;
             _delayTimer = 0f;
+            _validSummaryCount = 0;
+
+            if (_allSummaries != null)
+            {
+                for (int i = 0; i < _allSummaries.Count; i++)
+                {
+                    if (_allSummaries[i] != null && _allSummaries[i].gameObject.activeSelf)
+                        _validSummaryCount++;
+                }
+            }
+
+            if (_validSummaryCount <= 0)
+                _validSummaryCount = _allSummaries != null ? _allSummaries.Count : 0;
 
             SetupUI();
             UpdatePageVisibility();
@@ -281,7 +295,7 @@ namespace FourPersonExpeditions.UI
         private bool AreCurrentPageAnimationsComplete()
         {
             int start = _currentPage * _itemsPerPage;
-            int end = Mathf.Min(start + _itemsPerPage, _allSummaries.Count);
+            int end = Mathf.Min(start + _itemsPerPage, _validSummaryCount);
 
             for (int i = start; i < end; i++)
             {
@@ -301,7 +315,7 @@ namespace FourPersonExpeditions.UI
 
         private void ChangePage(int delta)
         {
-            int maxPages = Mathf.CeilToInt((float)_allSummaries.Count / _itemsPerPage);
+            int maxPages = Mathf.Max(1, Mathf.CeilToInt((float)_validSummaryCount / _itemsPerPage));
             int newPage = Mathf.Clamp(_currentPage + delta, 0, maxPages - 1);
 
             if (newPage != _currentPage)
@@ -318,7 +332,7 @@ namespace FourPersonExpeditions.UI
 
         private bool HasNextPage()
         {
-            int maxPages = Mathf.CeilToInt((float)_allSummaries.Count / _itemsPerPage);
+            int maxPages = Mathf.Max(1, Mathf.CeilToInt((float)_validSummaryCount / _itemsPerPage));
             return _currentPage < maxPages - 1;
         }
 
@@ -326,7 +340,7 @@ namespace FourPersonExpeditions.UI
         {
             if (_allSummaries == null) return;
 
-            int maxPages = Mathf.CeilToInt((float)_allSummaries.Count / _itemsPerPage);
+            int maxPages = Mathf.Max(1, Mathf.CeilToInt((float)_validSummaryCount / _itemsPerPage));
             
             FPELog.Debug($"CombatSummaryLogic: UpdatePageVisibility - page {_currentPage + 1}/{maxPages}, showing {_itemsPerPage} items");
             
@@ -335,7 +349,7 @@ namespace FourPersonExpeditions.UI
 
             for (int i = 0; i < _allSummaries.Count; i++)
             {
-                bool shouldShow = (i >= start && i < end);
+                bool shouldShow = (i < _validSummaryCount) && (i >= start && i < end);
                 _allSummaries[i].gameObject.SetActive(shouldShow);
             }
 

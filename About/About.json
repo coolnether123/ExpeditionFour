@@ -1,7 +1,7 @@
 {
   "id": "Coolnether123.FourPersonExpeditions",
   "name": "Four Person Expeditions",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "authors": ["Coolnether123"],
   "description": "Expands expedition party size from 2 to 4 members. Features individual loadouts per member, resource calculations for larger parties, and full UI support including all XP summary panels (exploration, combat, dialogue). Combat positioning adjusted for four characters.",
   "dependsOn": [],

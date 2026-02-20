@@ -21,6 +21,7 @@ namespace FourPersonExpeditions.SavePatches
                 var party = __instance.GetParty(partyId);
                 if (party == null)
                 {
+                    FPELog.Warn($"[FPE] AddMemberToParty: FAILED - Party {partyId} not found.");
                     __result = null;
                     return false;
                 }
@@ -28,21 +29,24 @@ namespace FourPersonExpeditions.SavePatches
                 int max = FourPersonConfig.MaxPartySize; 
                 if (party.membersCount >= max)
                 {
-                    FPELog.Warn($"AddMemberToParty: Failed to add member to party {partyId}. Maximum party size of {max} reached.");
+                    FPELog.Warn($"[FPE] AddMemberToParty: FAILED - Party {partyId} already has {party.membersCount} members (Max={max}).");
                     __result = null;
                     return false;
                 }
+
+                FPELog.Debug($"[FPE] AddMemberToParty: Adding member to party {partyId}. Current size: {party.membersCount}");
 
                 // Replicate vanilla behavior for component addition and registration
                 var member = party.gameObject.AddComponent<PartyMember>();
                 party.AddMember(member);   
                 __result = member;
                 
+                FPELog.Debug($"[FPE] AddMemberToParty: SUCCESS - New size: {party.membersCount}");
                 return false; // Suppress original method to bypass vanilla capacity validation
             }
             catch (Exception ex)
             {
-                FPELog.Warn($"AddMemberToParty: Unexpected error during member addition: {ex.Message}");
+                FPELog.Error($"[FPE] AddMemberToParty: CRASH - {ex}");
                 __result = null;
                 return false;
             }

@@ -76,6 +76,7 @@ namespace FourPersonExpeditions.UI
 
                 if (newSummary != null)
                 {
+                    FixClonedMaterials(newSummary);
                     summaries.Add(newSummary);
                 }
 

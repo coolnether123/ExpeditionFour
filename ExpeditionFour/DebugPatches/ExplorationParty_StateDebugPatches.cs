@@ -16,7 +16,7 @@ namespace FourPersonExpeditions.DebugPatches
         {
             try
             {
-                FPELog.Info($"Party Trace: Party #{__instance.id} - Pushing state {stateType}.");
+                FPELog.Debug($"Party Trace: Party #{__instance.id} - Pushing state {stateType}.");
             }
             catch { /* Debug tracing should not affect critical execution */ }
         }
@@ -32,11 +32,11 @@ namespace FourPersonExpeditions.DebugPatches
                 // Retrieve the state identifier from the returned StateDef object
                 if (Safe.TryGetField(__result, "state", out ExplorationParty.ePartyState stateDefState))
                 {
-                    FPELog.Info($"Party Trace: Party #{__instance.id} - Popped state {stateDefState}.");
+                    FPELog.Debug($"Party Trace: Party #{__instance.id} - Popped state {stateDefState}.");
                 }
                 else
                 {
-                    FPELog.Info($"Party Trace: Party #{__instance.id} - Popped state (could not extract identifier).");
+                    FPELog.Debug($"Party Trace: Party #{__instance.id} - Popped state (could not extract identifier).");
                 }
             }
             catch (Exception ex)
