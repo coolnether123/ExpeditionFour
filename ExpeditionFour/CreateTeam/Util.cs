@@ -1,11 +1,9 @@
-using ModAPI.UI;
 using UnityEngine;
 
 namespace FourPersonExpeditions
 {
     /// <summary>
-    /// Wraps ModAPI.UI.UIHelper for convenience.
-    /// Most methods now delegate to UIHelper.
+    /// Wraps local UI helpers for convenience.
     /// </summary>
     internal static class UICloneUtil
     {

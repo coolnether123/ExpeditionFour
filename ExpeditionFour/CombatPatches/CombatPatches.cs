@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using ModAPI.Reflection;
 using FourPersonExpeditions;
-using ModAPI.UI;
 
 namespace FourPersonExpeditions.CombatFixes
 {

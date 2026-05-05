@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0
 **Author:** Coolnether123
-**Requires:** Sheltered Mod Manager v1.0+
+**Requires:** Sheltered Mod Manager with ModAPI/ShelteredAPI 1.3
 
 ## Description
 
@@ -20,7 +20,7 @@ Expands Sheltered's expedition system to support 4-person parties instead of the
 
 ## Installation
 
-1. Install Sheltered Mod Manager v1.0 or higher
+1. Install Sheltered Mod Manager with ModAPI/ShelteredAPI 1.3
 2. Download the latest release of Four Person Expeditions
 3. Extract the mod folder into your game's `mods` directory
 4. Enable the mod in the Mod Manager

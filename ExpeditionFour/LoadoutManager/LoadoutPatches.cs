@@ -235,7 +235,7 @@ public static class UIDebug_ClickTracker_Patch
             if (hovered != null)
             {
                 FPELog.Debug($"[UIDebug] Mouse Click: {hovered.name} (Layer={hovered.layer})");
-                ModAPI.UI.UIDebug.TakeSnapshot(hovered, "Click Target");
+                UIDebug.TakeSnapshot(hovered, "Click Target");
             }
             else
             {

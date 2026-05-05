@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using ModAPI.Reflection;
 using System.Collections;
 using System.Linq;
-using ModAPI.UI;
 using FourPersonExpeditions;
 
 namespace FourPersonExpeditions.UI

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using ModAPI.Reflection;
-using ModAPI.UI;
 using FourPersonExpeditions;
 
 namespace FourPersonExpeditions.UI

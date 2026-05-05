@@ -12,6 +12,10 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <SmmRepoRoot>..\..\..\_Archived\Sheltered Modding\shelteredmodmanager</SmmRepoRoot>
+    <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('D:\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\mscorlib.dll')">D:\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed</ShelteredManagedRoot>
+    <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('D:\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed\mscorlib.dll')">D:\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed</ShelteredManagedRoot>
+    <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('C:\Program Files (x86)\GOG Galaxy\Games\Sheltered\Sheltered_Data\Managed\mscorlib.dll')">C:\Program Files (x86)\GOG Galaxy\Games\Sheltered\Sheltered_Data\Managed</ShelteredManagedRoot>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,6 +27,11 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
+    <NoStdLib>true</NoStdLib>
+    <GetReferenceAssemblyPaths>false</GetReferenceAssemblyPaths>
+    <FrameworkPathOverride>$(ShelteredManagedRoot)\</FrameworkPathOverride>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
@@ -33,21 +42,39 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ShelteredManagedRoot)\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(ShelteredSmmRoot)\bin\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="ModAPI">
-      <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\SMM\ModAPI.dll</HintPath>
+      <HintPath>$(ShelteredModApiRoot)\ModAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <Reference Include="ShelteredAPI">
+      <HintPath>$(ShelteredApiRoot)\ShelteredAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="mscorlib">
+      <HintPath>$(ShelteredManagedRoot)\mscorlib.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>$(ShelteredManagedRoot)\System.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath>$(ShelteredManagedRoot)\System.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Xml">
+      <HintPath>$(ShelteredManagedRoot)\System.Xml.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(ShelteredManagedRoot)\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -68,6 +95,7 @@
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
     <Compile Include="Utilities\FPELog.cs" />
+    <Compile Include="Utilities\FpeUiHelpers.cs" />
     <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="ExpeditionFourPatches.cs" />
@@ -82,12 +110,6 @@
     <Compile Include="UI\CombatSummaryFour.cs" />
     <Compile Include="UI\CombatSummaryLogic.cs" />
     <Compile Include="UI\DialogueSummaryFour.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Lib.Harmony">
-      <Version>2.4.2</Version>
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
