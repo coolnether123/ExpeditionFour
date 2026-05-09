@@ -91,6 +91,8 @@
     <Compile Include="LoadoutManager\LoadoutController.cs" />
     <Compile Include="LoadoutManager\LoadoutPatches.cs" />
     <Compile Include="MapPatches\PartyMapPanel_Hooks.cs" />
+    <Compile Include="MapPatches\PartyMapMemberSlotRenderer.cs" />
+    <Compile Include="MapPatches\PartyMapPanelPaginationController.cs" />
     <Compile Include="MapPatches\PartyMapPanel_InventoryPatch.cs" />
     <Compile Include="PartySetupFour_InitPatch.cs" />
     <Compile Include="CreateTeam\Util.cs" />
@@ -109,6 +111,9 @@
     <Compile Include="UI\ReturnSummaryFour.cs" />
     <Compile Include="UI\CombatSummaryFour.cs" />
     <Compile Include="UI\CombatSummaryLogic.cs" />
+    <Compile Include="UI\Pagination\PaginationControls.cs" />
+    <Compile Include="UI\Pagination\PaginationSpriteLookup.cs" />
+    <Compile Include="UI\Pagination\PaginationState.cs" />
     <Compile Include="UI\DialogueSummaryFour.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
