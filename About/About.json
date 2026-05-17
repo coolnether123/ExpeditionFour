@@ -5,6 +5,8 @@
   "authors": ["Coolnether123"],
   "description": "Expands expedition party size from 2 to 4 members. Features individual loadouts per member, resource calculations for larger parties, and full UI support including all XP summary panels (exploration, combat, dialogue). Combat positioning adjusted for four characters.",
   "entryType": "FourPersonExpeditions.MyPlugin",
+  "requiredModApiVersion": "2.0.0.0",
+  "requiredShelteredApiVersion": "2.0.0.0",
   "dependsOn": [],
   "tags": ["Gameplay"],
   "missingModWarning": "Make sure all expeditions with 3 or 4 characters are recalled before loading the save without the mod active.",
