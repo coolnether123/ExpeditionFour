@@ -161,13 +161,59 @@ namespace FourPersonExpeditions
                 panel.petrolRequiredLabel.color = tween.from;
         }
 
+        internal static string DescribeExpeditionState(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic = null)
+        {
+            if (panel == null) return "panel=null";
+
+            if (logic == null)
+                logic = panel.gameObject != null ? panel.gameObject.GetComponent<FourPersonPartyLogic>() : null;
+
+            string pageText = "?";
+            object page;
+            if (Safe.TryGetField(panel, "m_page", out page) && page != null)
+                pageText = page.ToString();
+
+            int partyId = Safe.GetFieldOrDefault(panel, "m_partyId", -1);
+            bool ready = Safe.GetFieldOrDefault(panel, "m_isReadyToGo", false);
+            float waterRequired = Safe.GetFieldOrDefault(panel, "m_waterRequired", 0f);
+            int petrolRequired = Safe.GetFieldOrDefault(panel, "m_petrolRequired", 0);
+            bool sufficientBattery = Safe.GetFieldOrDefault(panel, "m_sufficientBatteryForTrip", false);
+            int routeCount = panel.route != null ? panel.route.Count : -1;
+            int selectedCount = logic != null ? logic.SelectedMemberIndices.Count(i => i != -1) : -1;
+            string selectedIndices = logic != null
+                ? string.Join(",", logic.SelectedMemberIndices.Select(i => i.ToString()).ToArray())
+                : "?";
+            int partyMemberSlots = logic != null && logic.AllPartyMembers != null ? logic.AllPartyMembers.Count : -1;
+            int activeLoadout = logic != null ? logic.ActiveLoadoutIndex : -1;
+            bool loadoutActive = panel.LoadoutScreen != null && panel.LoadoutScreen.activeInHierarchy;
+
+            float storedWater = (Object)WaterManager.Instance != (Object)null ? WaterManager.Instance.StoredWater : -1f;
+            int storedPetrol = (Object)InventoryManager.Instance != (Object)null
+                ? InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol)
+                : -1;
+
+            return "page=" + pageText
+                + ", partyId=" + partyId
+                + ", ready=" + ready
+                + ", routeCount=" + routeCount
+                + ", selectedCount=" + selectedCount
+                + ", selected=[" + selectedIndices + "]"
+                + ", partyMemberSlots=" + partyMemberSlots
+                + ", activeLoadout=" + activeLoadout
+                + ", loadoutActive=" + loadoutActive
+                + ", waterRequired=" + waterRequired.ToString("0.###")
+                + ", storedWater=" + storedWater.ToString("0.###")
+                + ", petrolRequired=" + petrolRequired
+                + ", storedPetrol=" + storedPetrol
+                + ", sufficientBattery=" + sufficientBattery;
+        }
+
         [HarmonyPatch(typeof(ExpeditionMainPanelNew), "FinaliseExpedition")]
         public static class FinaliseExpedition_Patch
         {
             public static bool Prefix(ExpeditionMainPanelNew __instance, ref bool __result)
             {
                 var panel = __instance;
-                FPELog.Debug("FinaliseExpedition Prefix: Starting.");
                 var logic = panel.gameObject.GetComponent<FourPersonPartyLogic>();
                 if (logic == null) 
                 {
@@ -192,11 +238,10 @@ namespace FourPersonExpeditions
                 
                 var route = panel.route;
                 int selectedCount = logic.SelectedMemberIndices.Count(i => i != -1);
-                FPELog.Debug($"FinaliseExpedition: Party size={selectedCount}, Route points={route?.Count ?? 0}");
 
                 if (selectedCount == 0 || route == null || route.Count == 0)
                 {
-                    FPELog.Warn("FinaliseExpedition: Validation failed (no members or no route).");
+                    FPELog.Warn("FinaliseExpedition: Validation failed (no members or no route). " + DescribeExpeditionState(panel, logic));
                     __result = false;
                     return false;
                 }
@@ -232,7 +277,7 @@ namespace FourPersonExpeditions
 
                 if (selectedMembers.Count != selectedCount)
                 {
-                    FPELog.Warn($"FinaliseExpedition: Selected/member mismatch. expected={selectedCount}, actual={selectedMembers.Count}");
+                    FPELog.Warn($"FinaliseExpedition: Selected/member mismatch. expected={selectedCount}, actual={selectedMembers.Count}. " + DescribeExpeditionState(panel, logic));
                     __result = false;
                     return false;
                 }
@@ -253,7 +298,7 @@ namespace FourPersonExpeditions
                     float walkSpeed = member.GetWalkSpeed();
                     if (walkSpeed <= 0f)
                     {
-                        FPELog.Warn($"FinaliseExpedition: Blocking launch because {member.firstName} has zero walk speed.");
+                        FPELog.Warn($"FinaliseExpedition: Blocking launch because {member.firstName} has zero walk speed. " + DescribeExpeditionState(panel, logic));
                         __result = false;
                         return false;
                     }
@@ -316,14 +361,6 @@ namespace FourPersonExpeditions
 
                 __result = true;
                 return false; // Skip original
-            }
-        }
-        [HarmonyPatch(typeof(ExpeditionMainPanelNew), "ConfirmExpeditionSettings")]
-        public static class ConfirmExpeditionSettings_DebugPatch
-        {
-            public static void Prefix()
-            {
-                FPELog.Debug("ConfirmExpeditionSettings: Prefix reached. Showing confirmation message box.");
             }
         }
     }

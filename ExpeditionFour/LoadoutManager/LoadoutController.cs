@@ -71,7 +71,7 @@ public class LoadoutController : MonoBehaviour
         }
         else
         {
-            FPELog.Info($"Finalizing expedition from loadout slot {currentMemberSlot}.");
+            FPELog.Debug($"Finalizing expedition from loadout slot {currentMemberSlot}. " + ExpeditionFourPatches.DescribeExpeditionState(_mainPanel, _partyLogic));
             Safe.InvokeMethod(_mainPanel, "ConfirmExpeditionSettings");
         }
     }

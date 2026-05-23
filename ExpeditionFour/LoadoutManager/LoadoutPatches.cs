@@ -49,7 +49,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             }
             else
             {
-                FPELog.Debug("[FPE] OnExtra1: Final loadout stage completed. Finalizing expedition settings.");
+                FPELog.Debug("[FPE] OnExtra1: Final loadout stage completed. " + ExpeditionFourPatches.DescribeExpeditionState(__instance, logic));
                 logic.ActiveLoadoutIndex = -1; // Reset state
                 Safe.InvokeMethod(__instance, "ConfirmExpeditionSettings");
             }
@@ -77,7 +77,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             }
             else
             {
-                FPELog.Warn("[FPE] OnExtra1: Not ready to go (RouteSetup).");
+                FPELog.Warn("[FPE] OnExtra1: Not ready to go (RouteSetup). " + ExpeditionFourPatches.DescribeExpeditionState(__instance, logic));
             }
             return false;
         }
