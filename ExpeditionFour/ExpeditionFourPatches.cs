@@ -75,6 +75,9 @@ namespace FourPersonExpeditions
                     panel.waterRequiredLabel.text = Mathf.Ceil(finalReq).ToString("N0") + "/" + WaterManager.Instance.StoredWater.ToString("N0");
                 if (panel.petrolRequiredLabel != null)
                     panel.petrolRequiredLabel.text = Mathf.Ceil((float)petrol).ToString("N0") + "/" + InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol).ToString("N0");
+
+                ApplyWaterWarningState(panel, finalReq >= WaterManager.Instance.StoredWater);
+                ApplyPetrolWarningState(panel, petrol > InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol));
             }
             else
             {
@@ -129,8 +132,33 @@ namespace FourPersonExpeditions
                     
                     // Update sufficiency flag
                     Safe.SetField(panel, "m_sufficientBatteryForTrip", combinedBattery >= finalReq);
+                    ApplyWaterWarningState(panel, finalReq >= combinedBattery);
                 }
             }
+        }
+
+        private static void ApplyWaterWarningState(ExpeditionMainPanelNew panel, bool warn)
+        {
+            if (panel == null || panel.waterRequiredLabel == null) return;
+
+            TweenColor tween = Safe.GetFieldOrDefault<TweenColor>(panel, "m_waterColourTween", null);
+            if (tween == null) return;
+
+            tween.enabled = warn;
+            if (!warn)
+                panel.waterRequiredLabel.color = tween.from;
+        }
+
+        private static void ApplyPetrolWarningState(ExpeditionMainPanelNew panel, bool warn)
+        {
+            if (panel == null || panel.petrolRequiredLabel == null) return;
+
+            TweenColor tween = Safe.GetFieldOrDefault<TweenColor>(panel, "m_petrolColourTween", null);
+            if (tween == null) return;
+
+            tween.enabled = warn;
+            if (!warn)
+                panel.petrolRequiredLabel.color = tween.from;
         }
 
         [HarmonyPatch(typeof(ExpeditionMainPanelNew), "FinaliseExpedition")]
