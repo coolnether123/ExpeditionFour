@@ -48,6 +48,9 @@ namespace FourPersonExpeditions.SavePatches
         private static readonly HashSet<ExplorationParty.ePartyState> MustBeAwayStates =
             new HashSet<ExplorationParty.ePartyState>
             {
+                ExplorationParty.ePartyState.GettingReady,
+                ExplorationParty.ePartyState.LeavingShelter,
+                ExplorationParty.ePartyState.VehicleLeaving,
                 ExplorationParty.ePartyState.Traveling,
                 ExplorationParty.ePartyState.ReportingLocation,
                 ExplorationParty.ePartyState.ReportingLocationWaitUser,
@@ -76,9 +79,15 @@ namespace FourPersonExpeditions.SavePatches
                 ExplorationParty.ePartyState.EncounteredQuestNPCsWaitUser,
                 ExplorationParty.ePartyState.QuestEncounterStart,
                 ExplorationParty.ePartyState.QuestEncounterWaitFinished,
+                ExplorationParty.ePartyState.VehicleReturning,
+                ExplorationParty.ePartyState.EnteringShelter,
                 ExplorationParty.ePartyState.ReturnedShowExperienceGained,
                 ExplorationParty.ePartyState.ReturnedRequestTransferPanel,
-                ExplorationParty.ePartyState.ReturnedWaitItemTransfer
+                ExplorationParty.ePartyState.ReturnedWaitItemTransfer,
+                ExplorationParty.ePartyState.HorseLeaving,
+                ExplorationParty.ePartyState.HorseReturning,
+                ExplorationParty.ePartyState.EnteringShelterNextUpdate,
+                ExplorationParty.ePartyState.ReturnedShowHazmatExperienceGained
             };
 
         static void Postfix(ExplorationParty __instance, SaveData data)
