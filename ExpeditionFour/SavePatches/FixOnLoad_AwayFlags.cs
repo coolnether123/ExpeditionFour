@@ -44,58 +44,12 @@ namespace FourPersonExpeditions.SavePatches
     [HarmonyPatch(typeof(ExplorationParty), nameof(ExplorationParty.SaveLoad))]
     internal static class FixOnLoad_AwayFlags
     {
-        // States where characters MUST be flagged as "away" when a save is loaded.
-        private static readonly HashSet<ExplorationParty.ePartyState> MustBeAwayStates =
-            new HashSet<ExplorationParty.ePartyState>
-            {
-                ExplorationParty.ePartyState.GettingReady,
-                ExplorationParty.ePartyState.LeavingShelter,
-                ExplorationParty.ePartyState.VehicleLeaving,
-                ExplorationParty.ePartyState.Traveling,
-                ExplorationParty.ePartyState.ReportingLocation,
-                ExplorationParty.ePartyState.ReportingLocationWaitUser,
-                ExplorationParty.ePartyState.ReportingDiversionsStart,
-                ExplorationParty.ePartyState.ReportingDiversions,
-                ExplorationParty.ePartyState.ReportingDiversionsWaitUser,
-                ExplorationParty.ePartyState.SearchingLocation,
-                ExplorationParty.ePartyState.EncounteredItemsStart,
-                ExplorationParty.ePartyState.EncounteredItems,
-                ExplorationParty.ePartyState.EncounteredItemsWaitUser,
-                ExplorationParty.ePartyState.EncounteredItemsRequestTransferPanel,
-                ExplorationParty.ePartyState.EncounteredItemsWaitItemTransfer,
-                ExplorationParty.ePartyState.EncounteredNPCsStart,
-                ExplorationParty.ePartyState.EncounteredNPCs,
-                ExplorationParty.ePartyState.EncounteredNPCsWaitUser,
-                ExplorationParty.ePartyState.EncounteredNPCsRequestNewEncounter,
-                ExplorationParty.ePartyState.EncounteredNPCsWaitFinished,
-                ExplorationParty.ePartyState.EncounteredNPCsAutoResolve,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounterStart,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounter,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounterWaitUser,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounterRequestNewEncounter,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounterWaitFinished,
-                ExplorationParty.ePartyState.OpenGroundNpcEncounterAutoResolve,
-                ExplorationParty.ePartyState.EncounteredQuestNPCs,
-                ExplorationParty.ePartyState.EncounteredQuestNPCsWaitUser,
-                ExplorationParty.ePartyState.QuestEncounterStart,
-                ExplorationParty.ePartyState.QuestEncounterWaitFinished,
-                ExplorationParty.ePartyState.VehicleReturning,
-                ExplorationParty.ePartyState.EnteringShelter,
-                ExplorationParty.ePartyState.ReturnedShowExperienceGained,
-                ExplorationParty.ePartyState.ReturnedRequestTransferPanel,
-                ExplorationParty.ePartyState.ReturnedWaitItemTransfer,
-                ExplorationParty.ePartyState.HorseLeaving,
-                ExplorationParty.ePartyState.HorseReturning,
-                ExplorationParty.ePartyState.EnteringShelterNextUpdate,
-                ExplorationParty.ePartyState.ReturnedShowHazmatExperienceGained
-            };
-
         static void Postfix(ExplorationParty __instance, SaveData data)
         {
             if (__instance == null || data == null || !data.isLoading) return;
 
             var state = __instance.state;
-            var mustBeAway = MustBeAwayStates.Contains(state);
+            var mustBeAway = ExpeditionSaveStatePolicy.AwayStates.Contains(state);
 
             // Removed verbose party load trace for release
             // FPELog.Info($"Party Load Trace: {FpeDebugFmt.PartyLine(__instance)}");

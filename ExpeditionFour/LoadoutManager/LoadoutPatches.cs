@@ -14,20 +14,24 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
     /// </summary>
     public static bool Prefix(ExpeditionMainPanelNew __instance)
     {
+        if (__instance == null || __instance.gameObject == null)
+            return true;
+
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return true;
 
         if (!Safe.TryGetField(__instance, "m_page", out object page)) return true;
         int pageValue = (int)page;
 
-        FPELog.Debug($"[FPE] OnExtra1 Prefix: Page={pageValue}, ActiveLoadoutIndex={logic.ActiveLoadoutIndex}, LoadoutScreen.active={__instance.LoadoutScreen.activeInHierarchy}");
+        bool loadoutScreenActive = __instance.LoadoutScreen != null && __instance.LoadoutScreen.activeInHierarchy;
+        FPELog.Debug($"[FPE] OnExtra1 Prefix: Page={pageValue}, ActiveLoadoutIndex={logic.ActiveLoadoutIndex}, LoadoutScreen.active={loadoutScreenActive}");
 
         // CRITICAL: Ensure characters are assigned to the correct PartyMember components before any loadout logic
         if (!AssignPeopleToPartyMembers(__instance, logic))
             return false;
 
         // If ActiveLoadoutIndex >= 0 AND the LoadoutScreen is visible, we're already in loadout mode.
-        if (logic.ActiveLoadoutIndex >= 0 && __instance.LoadoutScreen.activeInHierarchy)
+        if (logic.ActiveLoadoutIndex >= 0 && loadoutScreenActive)
         {
             FPELog.Debug($"[FPE] OnExtra1: Detected active loadout mode (slot {logic.ActiveLoadoutIndex}).");
             
@@ -94,7 +98,11 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
     /// </summary>
     private static bool AssignPeopleToPartyMembers(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
-        EnsurePartyMemberSlots(panel, logic);
+        if (!PartyMemberSlotSynchronizer.EnsureSlots(panel, logic))
+        {
+            FPELog.Warn("[FPE] AssignPeopleToPartyMembers: Could not provision the selected party slots.");
+            return false;
+        }
 
         var elig = panel.eligiblePeople;
         if (elig == null)
@@ -110,50 +118,16 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             if (pm == null) continue;
 
             int charIdx = (i < logic.SelectedMemberIndices.Count) ? logic.SelectedMemberIndices[i] : -1;
-            if (charIdx >= 0 && charIdx < elig.Count)
+            FamilyMember nextPerson = charIdx >= 0 && charIdx < elig.Count ? elig[charIdx] : null;
+            if ((UnityEngine.Object)pm.person != (UnityEngine.Object)nextPerson)
             {
-                pm.person = elig[charIdx];
-            }
-            else
-            {
-                pm.person = null;
+                pm.ClearAllEquipment();
+                pm.person = nextPerson;
             }
         }
 
+        PartyMemberSlotSynchronizer.SyncVanillaMemberFields(panel, logic);
         return true;
-    }
-
-    private static void EnsurePartyMemberSlots(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
-    {
-        if (panel == null || logic == null || ExplorationManager.Instance == null) return;
-        if (!Safe.TryGetField(panel, "m_partyId", out int partyId)) return;
-
-        var party = ExplorationManager.Instance.GetParty(partyId);
-        if (party == null) return;
-
-        int requiredSlots = 0;
-        for (int i = 0; i < logic.MaxPartySize && i < logic.SelectedMemberIndices.Count; i++)
-        {
-            if (logic.SelectedMemberIndices[i] != -1)
-                requiredSlots = i + 1;
-        }
-
-        requiredSlots = Mathf.Max(requiredSlots, 2);
-
-        var components = party.GetComponents<PartyMember>();
-        for (int i = components.Length; i < requiredSlots; i++)
-        {
-            var added = ExplorationManager.Instance.AddMemberToParty(partyId);
-            if (added == null)
-            {
-                FPELog.Warn($"[FPE] EnsurePartyMemberSlots: Failed to add slot {i} for party {partyId}.");
-                break;
-            }
-        }
-
-        components = party.GetComponents<PartyMember>();
-        logic.AllPartyMembers.Clear();
-        logic.AllPartyMembers.AddRange(components);
     }
 
     /// <summary>
@@ -167,6 +141,12 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         // Use the vanilla DelayedPageChange system to ensure proper timing
         System.Action pageAction = () =>
         {
+            if (panel.LoadoutScreen == null || panel.PartySetup == null || panel.MapScreen == null)
+            {
+                FPELog.Error("[FPE] ShowLoadoutForSlot: required expedition screens are missing.");
+                return;
+            }
+
             if (!panel.LoadoutScreen.activeInHierarchy)
             {
                 panel.LoadoutScreen.SetActive(true);
@@ -224,8 +204,109 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         var audio = isFirst ? panel.acceptRouteSound : panel.selectMemberSound;
         if (audio != null)
         {
-            AudioManager.Instance.PlayUI(audio);
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayUI(audio);
         }
+    }
+}
+
+[HarmonyPatch(typeof(ExpeditionMainPanelNew), nameof(ExpeditionMainPanelNew.OnCancel))]
+internal static class ExpeditionMainPanelNew_OnCancel_LoadoutPatch
+{
+    public static bool Prefix(ExpeditionMainPanelNew __instance)
+    {
+        if (__instance == null || __instance.gameObject == null)
+            return true;
+
+        FourPersonPartyLogic logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
+        if (logic == null)
+            return true;
+
+        int activeSelectionSlot = logic.NormalizeActiveSelectionSlot();
+        if (__instance.PartySetup != null && __instance.PartySetup.activeInHierarchy
+            && activeSelectionSlot > 0)
+        {
+            int previousSlot = activeSelectionSlot - 1;
+            logic.ActiveSelectionSlot = previousSlot;
+            logic.HighlightedIndices[previousSlot] = logic.SelectedMemberIndices[previousSlot];
+            __instance.partySetupScript?.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
+            FPELog.Debug($"[FPE] OnCancel: returning to party selection slot {previousSlot}.");
+            return false;
+        }
+
+        if (__instance.LoadoutScreen == null || !__instance.LoadoutScreen.activeInHierarchy)
+            return true;
+
+        object page;
+        if (!Safe.TryGetField(__instance, "m_page", out page) || page == null || (int)page != 1)
+            return true;
+
+        int previousLoadoutSlot = -1;
+        for (int i = logic.ActiveLoadoutIndex - 1; i >= 0; i--)
+        {
+            if (i < logic.SelectedMemberIndices.Count && logic.SelectedMemberIndices[i] != -1)
+            {
+                previousLoadoutSlot = i;
+                break;
+            }
+        }
+
+        if (previousLoadoutSlot == -1)
+        {
+            // Returning from the first loadout goes back to the map. Match the
+            // vanilla cleanup for slots three and four before it does so.
+            for (int i = 2; i < logic.AllPartyMembers.Count; i++)
+            {
+                if (logic.AllPartyMembers[i] != null)
+                    logic.AllPartyMembers[i].ClearAllEquipment();
+            }
+
+            logic.ActiveLoadoutIndex = -1;
+            return true;
+        }
+
+        logic.ActiveLoadoutIndex = previousLoadoutSlot;
+        ShowPreviousLoadout(__instance, logic, previousLoadoutSlot);
+        return false;
+    }
+
+    private static void ShowPreviousLoadout(
+        ExpeditionMainPanelNew panel,
+        FourPersonPartyLogic logic,
+        int slot)
+    {
+        FPELog.Debug($"[FPE] OnCancel: returning to loadout slot {slot}.");
+
+        System.Action pageAction = () =>
+        {
+            if (panel.LoadoutScreen == null || panel.PartySetup == null || panel.MapScreen == null)
+                return;
+
+            panel.LoadoutScreen.SetActive(true);
+            panel.PartySetup.SetActive(false);
+            panel.MapScreen.SetActive(false);
+
+            ExpeditionLoadout loadout;
+            if (!Safe.TryGetField(panel, "m_loadoutScript", out loadout) || loadout == null)
+                return;
+            if (slot < 0 || slot >= logic.AllPartyMembers.Count || logic.AllPartyMembers[slot] == null)
+                return;
+
+            loadout.InitializeLoadout(logic.AllPartyMembers[slot], false);
+            bool hasAnother = false;
+            for (int i = slot + 1; i < logic.MaxPartySize; i++)
+            {
+                if (i < logic.SelectedMemberIndices.Count && logic.SelectedMemberIndices[i] != -1)
+                {
+                    hasAnother = true;
+                    break;
+                }
+            }
+            loadout.SetConfirmText(Localization.Get(hasAnother ? "UI.NextPerson" : "UI.SendParty"));
+            Safe.SetField(panel, "m_page", 1);
+        };
+
+        Safe.InvokeMethod(panel, "DelayedPageChange", pageAction);
     }
 }
 

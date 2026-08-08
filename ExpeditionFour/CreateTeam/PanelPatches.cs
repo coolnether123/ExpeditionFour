@@ -215,7 +215,11 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return true;
 
-        EnsurePartyMemberSlots(__instance, logic);
+        if (!PartyMemberSlotSynchronizer.EnsureSlots(__instance, logic))
+        {
+            FPELog.Warn("[FPE] UpdatePartyMembers: Could not provision the selected party slots.");
+            return true;
+        }
 
         FPELog.Debug("UpdatePartyMembers Patch: Assigning selected family members to the party.");
         int max = Mathf.Min(logic.MaxPartySize, logic.AllPartyMembers.Count);
@@ -256,40 +260,8 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
                 if (haz >= 0) partyMember.SetHazmatNumber(haz);
             }
         }
+        PartyMemberSlotSynchronizer.SyncVanillaMemberFields(__instance, logic);
         return false;
-    }
-
-    private static void EnsurePartyMemberSlots(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
-    {
-        if (panel == null || logic == null || ExplorationManager.Instance == null) return;
-        if (!Safe.TryGetField(panel, "m_partyId", out int partyId)) return;
-
-        var party = ExplorationManager.Instance.GetParty(partyId);
-        if (party == null) return;
-
-        int requiredSlots = 0;
-        for (int i = 0; i < logic.MaxPartySize && i < logic.SelectedMemberIndices.Count; i++)
-        {
-            if (logic.SelectedMemberIndices[i] != -1)
-                requiredSlots = i + 1;
-        }
-
-        requiredSlots = Mathf.Max(requiredSlots, 2);
-
-        var components = party.GetComponents<PartyMember>();
-        for (int i = components.Length; i < requiredSlots; i++)
-        {
-            var added = ExplorationManager.Instance.AddMemberToParty(partyId);
-            if (added == null)
-            {
-                FPELog.Warn($"[FPE] UpdatePartyMembers: Failed to add slot {i} for party {partyId}.");
-                break;
-            }
-        }
-
-        components = party.GetComponents<PartyMember>();
-        logic.AllPartyMembers.Clear();
-        logic.AllPartyMembers.AddRange(components);
     }
 }
 
@@ -318,22 +290,7 @@ public static class ExpeditionMainPanelNew_Update_Patch
         bool hasRoute = route != null && route.Count > 0;
 
         // 3. Check Resources
-        float waterReq = Safe.GetFieldOrDefault(__instance, "m_waterRequired", 0f);
-        int petrolReq = Safe.GetFieldOrDefault(__instance, "m_petrolRequired", 0);
-        
-        bool enoughResources = true;
-        if (FpeRuntimeGuards.IsStasisMode())
-        {
-             bool sufficientBattery = Safe.GetFieldOrDefault(__instance, "m_sufficientBatteryForTrip", false);
-             enoughResources = sufficientBattery;
-        }
-        else
-        {
-            enoughResources = WaterManager.Instance != null
-                && InventoryManager.Instance != null
-                && WaterManager.Instance.StoredWater >= waterReq
-                && InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolReq;
-        }
+        bool enoughResources = ExpeditionFourPatches.HasSufficientLaunchResources(__instance);
 
         bool allSelectedCanMove = true;
         if (anyoneSelected)

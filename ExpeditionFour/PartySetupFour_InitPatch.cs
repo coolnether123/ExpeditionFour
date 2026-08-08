@@ -21,7 +21,8 @@ namespace FourPersonExpeditions
 
             FPELog.Debug($"[FPE] ExpeditionMainPanel.OnShow: Synchronizing members. MaxPartySize={logic.MaxPartySize}");
             
-            if (Safe.TryGetField(__instance, "m_partyId", out int partyId))
+            if (Safe.TryGetField(__instance, "m_partyId", out int partyId)
+                && ExplorationManager.Instance != null)
             {
                 var party = ExplorationManager.Instance.GetParty(partyId);
 

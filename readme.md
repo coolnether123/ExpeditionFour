@@ -1,6 +1,6 @@
 # Four Person Expeditions
 
-**Version:** 1.1.3
+**Version:** 1.1.4
 **Author:** Coolnether123
 **Requires:** Sheltered Mod Manager 2.0 with ModAPI/ShelteredAPI 2.0
 

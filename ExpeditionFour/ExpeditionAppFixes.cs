@@ -69,5 +69,41 @@ namespace FourPersonExpeditions
                 FPELog.Debug($"[TravelScaling] Petrol rate scaled for {__instance.membersCount} expedition members.");
             }
         }
+
+        // Vanilla stores the combined stasis battery requirement on the party,
+        // then subtracts that combined amount from every returned suit. Divide
+        // the shared value back across the party before the vanilla call so a
+        // four-person return consumes each suit's per-person travel cost once.
+        [HarmonyPatch(typeof(Obj_HazmatSuit_Stasis), nameof(Obj_HazmatSuit_Stasis.ReduceSuitBatteryValue))]
+        public static class Obj_HazmatSuit_Stasis_ReduceBatteryPatch
+        {
+            public static void Prefix(int suitIndex, ref float value)
+            {
+                var manager = ExplorationManager.Instance;
+                if (manager == null || value <= 0f)
+                    return;
+
+                var parties = manager.GetAllExplorarionParties();
+                if (parties == null)
+                    return;
+
+                foreach (var party in parties)
+                {
+                    if (party == null || !party.isReturning || party.membersCount <= 1)
+                        continue;
+
+                    for (int i = 0; i < party.membersCount; i++)
+                    {
+                        var member = party.GetMember(i);
+                        if (member != null && member.GetHazmatNumber() == suitIndex)
+                        {
+                            value = Mathf.Ceil(value / party.membersCount);
+                            FPELog.Debug($"[StasisReturn] Divided battery charge {value} across {party.membersCount} returning members.");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

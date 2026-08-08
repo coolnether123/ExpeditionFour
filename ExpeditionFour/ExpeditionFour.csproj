@@ -103,12 +103,14 @@
     <Compile Include="Utilities\FPELog.cs" />
     <Compile Include="Utilities\FpeUiHelpers.cs" />
     <Compile Include="Utilities\FpeRuntimeGuards.cs" />
+    <Compile Include="Utilities\PartyMemberSlotSynchronizer.cs" />
     <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="ExpeditionFourPatches.cs" />
     <Compile Include="PartySetupFour_Navigation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SavePatches\AddMemberToParty.cs" />
+    <Compile Include="SavePatches\ExpeditionSaveStatePolicy.cs" />
     <Compile Include="SavePatches\FixOnLoad_AwayFlags.cs" />
     <Compile Include="SavePatches\PatchBrokenSaves.cs" />
     <Compile Include="ExpeditionAppFixes.cs" />

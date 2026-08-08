@@ -114,6 +114,7 @@ namespace FourPersonExpeditions.MapPatches
             return logic != null
                 && logic.isMapUIInitialized
                 && logic.pageIndicatorLabel != null
+                && logic.pageLeftArrow != null
                 && logic.pageRightArrow != null;
         }
 
@@ -432,7 +433,7 @@ namespace FourPersonExpeditions.MapPatches
                 GameObject recallButton = recallButtonObject as GameObject;
                 if (recallButton != null)
                 {
-                    recallButton.SetActive(!isRecalled && state.HasAnyParties);
+                    recallButton.SetActive(!isRecalled && state.HasCurrentParty);
                 }
             }
 
@@ -452,7 +453,7 @@ namespace FourPersonExpeditions.MapPatches
                 LegendContainer legend = legendObject as LegendContainer;
                 if (legend != null)
                 {
-                    legend.SetButtonEnabled(LegendContainer.ButtonEnum.YButton, !isRecalled && state.HasAnyParties);
+                    legend.SetButtonEnabled(LegendContainer.ButtonEnum.YButton, !isRecalled && state.HasCurrentParty);
                 }
             }
         }

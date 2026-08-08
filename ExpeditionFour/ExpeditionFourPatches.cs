@@ -31,6 +31,13 @@ namespace FourPersonExpeditions
             int selectedCount = logic.SelectedMemberIndices.Count(i => i != -1);
             if (selectedCount <= 0) return; 
 
+            float worldUnitsPerMile = ExplorationManager.Instance.worldUnitsPerMile;
+            if (worldUnitsPerMile <= Mathf.Epsilon)
+            {
+                FPELog.Warn("[FPE] Cannot calculate expedition resources because worldUnitsPerMile is invalid.");
+                return;
+            }
+
             // Re-implement the calculation logic:
             float dist = Safe.GetFieldOrDefault<float>(panel, "m_routeDistance", 0f);
             
@@ -43,11 +50,11 @@ namespace FourPersonExpeditions
             float baseReq = 0f;
             if (isStasis)
             {
-                baseReq = dist / ExplorationManager.Instance.worldUnitsPerMile * ExplorationManager.Instance.m_batteryPerMile;
+                baseReq = dist / worldUnitsPerMile * ExplorationManager.Instance.m_batteryPerMile;
             }
             else
             {
-                baseReq = dist / ExplorationManager.Instance.worldUnitsPerMile * ExplorationManager.Instance.waterPerPersonPerMile;
+                baseReq = dist / worldUnitsPerMile * ExplorationManager.Instance.waterPerPersonPerMile;
                 
                 // Vehicle modifiers
                 if (useVehicle) baseReq *= ExplorationManager.Instance.RVWaterModifier;
@@ -64,7 +71,7 @@ namespace FourPersonExpeditions
                 var vehicle = Safe.GetFieldOrDefault<Obj_CamperVan>(panel, "m_vehicle", null);
                 if (vehicle != null)
                 {
-                     petrol = Mathf.FloorToInt(dist / ExplorationManager.Instance.worldUnitsPerMile * vehicle.PetrolPerPersonPerMile * Mathf.Max(1, selectedCount));
+                     petrol = Mathf.FloorToInt(dist / worldUnitsPerMile * vehicle.PetrolPerPersonPerMile * Mathf.Max(1, selectedCount));
                 }
             }
             Safe.SetField(panel, "m_petrolRequired", petrol);
@@ -84,7 +91,7 @@ namespace FourPersonExpeditions
                 if (panel.petrolRequiredLabel != null && inventoryManager != null)
                     panel.petrolRequiredLabel.text = Mathf.Ceil((float)petrol).ToString("N0") + "/" + storedPetrol.ToString("N0");
 
-                ApplyWaterWarningState(panel, waterManager == null || finalReq >= storedWater);
+                ApplyWaterWarningState(panel, waterManager == null || finalReq > storedWater);
                 ApplyPetrolWarningState(panel, inventoryManager == null || petrol > storedPetrol);
             }
             else
@@ -144,9 +151,28 @@ namespace FourPersonExpeditions
                     
                     // Update sufficiency flag
                     Safe.SetField(panel, "m_sufficientBatteryForTrip", combinedBattery >= finalReq);
-                    ApplyWaterWarningState(panel, finalReq >= combinedBattery);
+                    ApplyWaterWarningState(panel, finalReq > combinedBattery);
                 }
             }
+        }
+
+        internal static bool HasSufficientLaunchResources(ExpeditionMainPanelNew panel)
+        {
+            if (panel == null)
+                return false;
+
+            float waterRequired = Safe.GetFieldOrDefault(panel, "m_waterRequired", 0f);
+            int petrolRequired = Safe.GetFieldOrDefault(panel, "m_petrolRequired", 0);
+            if (waterRequired < 0f || petrolRequired < 0)
+                return false;
+
+            if (FpeRuntimeGuards.IsStasisMode())
+                return Safe.GetFieldOrDefault(panel, "m_sufficientBatteryForTrip", false);
+
+            return WaterManager.Instance != null
+                && InventoryManager.Instance != null
+                && WaterManager.Instance.StoredWater >= waterRequired
+                && InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolRequired;
         }
 
         private static void ApplyWaterWarningState(ExpeditionMainPanelNew panel, bool warn)
@@ -258,9 +284,35 @@ namespace FourPersonExpeditions
                     return false;
                 }
 
+                if (ExplorationManager.Instance == null
+                    || (!FpeRuntimeGuards.IsStasisMode() && InventoryManager.Instance == null)
+                    || !HasSufficientLaunchResources(panel))
+                {
+                    FPELog.Warn("FinaliseExpedition: Launch resources are no longer available. " + DescribeExpeditionState(panel, logic));
+                    __result = false;
+                    return false;
+                }
+
+                for (int i = 0; i < logic.SelectedMemberIndices.Count; i++)
+                {
+                    if (logic.SelectedMemberIndices[i] == -1)
+                    {
+                        for (int j = i + 1; j < logic.SelectedMemberIndices.Count; j++)
+                        {
+                            if (logic.SelectedMemberIndices[j] != -1)
+                            {
+                                FPELog.Warn("FinaliseExpedition: Selected party slots are not contiguous.");
+                                __result = false;
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+                }
+
                 var selectedMembers = new List<FamilyMember>(selectedCount);
 
-                // Process ALL party members
+                // Validate every selected slot before mutating the party or inventory.
                 for (int i = 0; i < logic.AllPartyMembers.Count; i++)
                 {
                     var pm = logic.AllPartyMembers[i];
@@ -271,19 +323,6 @@ namespace FourPersonExpeditions
                     if (isSelected && (Object)pm.person != (Object)null)
                     {
                         selectedMembers.Add(pm.person);
-                        pm.person.job_queue.ForceClear();
-                        pm.person.ai_queue.ForceClear();
-                        
-                        // IMPORTANT: Deduct equipment from global inventory
-                        foreach (var eq in pm.GetEquippedItems())
-                        {
-                            InventoryManager.Instance.RemoveItemsOfType(eq.m_type, eq.m_count);
-                        }
-                    }
-                    else
-                    {
-                        // Remove unselected members from the party object to clean up
-                        ExplorationManager.Instance.RemoveMemberFromParty(partyId, pm);
                     }
                 }
 
@@ -299,20 +338,36 @@ namespace FourPersonExpeditions
                     var member = selectedMembers[i];
                     if ((Object)member == (Object)null) continue;
 
-                    // Normalize movement/leave state before BeginExploring queues leave jobs.
-                    member.CancelCurrentJob(true);
-                    member.CancelCurrentAIJob(true);
-                    member.StopClimbingImmediately(false);
-                    member.finishedLeavingShelter = false;
-                    // Do not force isAway=false here; BeginExploring owns this transition.
-                    // Clearing it here opens a race window for external job injectors.
-
                     float walkSpeed = member.GetWalkSpeed();
                     if (walkSpeed <= 0f)
                     {
                         FPELog.Warn($"FinaliseExpedition: Blocking launch because {member.firstName} has zero walk speed. " + DescribeExpeditionState(panel, logic));
                         __result = false;
                         return false;
+                    }
+                }
+
+                // Process ALL party members only after validation has passed.
+                for (int i = 0; i < logic.AllPartyMembers.Count; i++)
+                {
+                    var pm = logic.AllPartyMembers[i];
+                    if (pm == null) continue;
+
+                    bool isSelected = i < logic.SelectedMemberIndices.Count
+                        && logic.SelectedMemberIndices[i] != -1;
+                    if (isSelected && (Object)pm.person != (Object)null)
+                    {
+                        pm.person.CancelCurrentJob(true);
+                        pm.person.CancelCurrentAIJob(true);
+                        pm.person.StopClimbingImmediately(false);
+                        pm.person.finishedLeavingShelter = false;
+
+                        foreach (var eq in pm.GetEquippedItems())
+                            InventoryManager.Instance.RemoveItemsOfType(eq.m_type, eq.m_count);
+                    }
+                    else
+                    {
+                        ExplorationManager.Instance.RemoveMemberFromParty(partyId, pm);
                     }
                 }
 
@@ -346,13 +401,16 @@ namespace FourPersonExpeditions
                 {
                     if (WaterManager.Instance.UseWater(waterRequired))
                         ExplorationManager.Instance.SetWater(partyId, waterRequired, WaterManager.Instance.Contamination);
+                    else
+                    {
+                        FPELog.Warn("FinaliseExpedition: Water deduction failed after preflight validation.");
+                        __result = false;
+                        return false;
+                    }
                 }
 
-                if (InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolRequired)
-                {
-                    InventoryManager.Instance.RemoveItemsOfType(ItemManager.ItemType.Petrol, petrolRequired);
-                    ExplorationManager.Instance.SetPetrol(partyId, petrolRequired);
-                }
+                InventoryManager.Instance.RemoveItemsOfType(ItemManager.ItemType.Petrol, petrolRequired);
+                ExplorationManager.Instance.SetPetrol(partyId, petrolRequired);
 
                 // Deduct additional items tracked by counts
                 if ((Object)WaterManager.Instance != (Object)null && amountWater > 0)
