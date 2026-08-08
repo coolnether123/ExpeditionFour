@@ -139,7 +139,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         {
             if (selIndex < 0 || selIndex >= elig.Count) continue;
             var person = elig[selIndex];
-            if (person.illness != null && person.illness.foodPoisoning.isActive)
+            if (FpeRuntimeGuards.IsFoodPoisoned(person))
             {
                 MessageBox.Show(MessageBoxButtons.Okay_Button, "UI.FoodPoisonWarning");
                 return true;
@@ -150,8 +150,12 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
 
     private static bool CheckHazmat4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
-        var hazmatScript = ObjectManager.Instance.GetObjectsOfType(ObjectManager.ObjectType.HazmatSuits_Stasis)[0] as Obj_HazmatSuit_Stasis;
-        if (hazmatScript == null) return true;
+        Obj_HazmatSuit_Stasis hazmatScript;
+        if (!FpeRuntimeGuards.TryGetStasisHazmatSuit(out hazmatScript))
+        {
+            MessageBox.Show(MessageBoxButtons.Okay_Button, "Text.UI.NoHazmatWarning");
+            return false;
+        }
 
         var elig = panel.eligiblePeople;
         foreach (int selIndex in logic.SelectedMemberIndices)

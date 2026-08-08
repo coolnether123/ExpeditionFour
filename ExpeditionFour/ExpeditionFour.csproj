@@ -98,6 +98,7 @@
     <Compile Include="CreateTeam\Util.cs" />
     <Compile Include="Utilities\FPELog.cs" />
     <Compile Include="Utilities\FpeUiHelpers.cs" />
+    <Compile Include="Utilities\FpeRuntimeGuards.cs" />
     <Compile Include="FourPersonUIPositions.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="ExpeditionFourPatches.cs" />

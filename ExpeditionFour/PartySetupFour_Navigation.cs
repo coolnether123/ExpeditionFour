@@ -103,7 +103,7 @@ namespace FourPersonExpeditions
                 if (elig != null && idx >= 0 && idx < elig.Count)
                 {
                     var person = elig[idx];
-                    if (person != null && person.illness != null && person.illness.foodPoisoning != null && person.illness.foodPoisoning.isActive)
+                    if (FpeRuntimeGuards.IsFoodPoisoned(person))
                         continue;
                 }
 

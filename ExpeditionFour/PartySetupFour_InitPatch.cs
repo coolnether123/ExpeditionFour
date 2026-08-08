@@ -91,7 +91,18 @@ namespace FourPersonExpeditions
             if (logic == null || !logic.isInitialized) return;
 
             var elig = panel.eligiblePeople;
+            if (elig == null)
+            {
+                UpdateStatsUI(__instance, null);
+                return;
+            }
+
             int activeSlot = logic.ActiveSelectionSlot;
+            if (activeSlot < 0 || activeSlot >= logic.SelectedMemberIndices.Count)
+            {
+                FPELog.Warn($"[FPE] UpdatePage: Active selection slot {activeSlot} is outside the configured party size.");
+                return;
+            }
 
             // Determine which "page" (pair) of avatars should be currently visible
             int firstVisibleSlot = (activeSlot / 2) * 2;
@@ -221,7 +232,7 @@ namespace FourPersonExpeditions
             if (characterIndexToShow >= 0 && characterIndexToShow < elig.Count)
             {
                 var p = elig[characterIndexToShow];
-                bool isFoodPoisoned = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                bool isFoodPoisoned = FpeRuntimeGuards.IsFoodPoisoned(p);
                 if (p != null && !isFoodPoisoned)
                 {
                     if (avatar.avatar != null) p.ColorizeAvatarSprite(avatar.avatar);
@@ -267,7 +278,7 @@ namespace FourPersonExpeditions
 
                 if (logic.IsIndexSelected(nextIdx)) continue;
                 var p = elig[nextIdx];
-                bool blocked = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                bool blocked = FpeRuntimeGuards.IsFoodPoisoned(p);
                 if (!blocked)
                 {
                     canGoNext = true;
@@ -289,7 +300,7 @@ namespace FourPersonExpeditions
 
                 if (logic.IsIndexSelected(prevIdx)) continue;
                 var p = elig[prevIdx];
-                bool blocked = p != null && p.illness != null && p.illness.foodPoisoning != null && p.illness.foodPoisoning.isActive;
+                bool blocked = FpeRuntimeGuards.IsFoodPoisoned(p);
                 if (!blocked)
                 {
                     canGoPrev = true;

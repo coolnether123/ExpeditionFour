@@ -82,8 +82,8 @@ namespace FourPersonExpeditions
             else
             {
                 // Stasis mode battery calculation - need to get combined battery for all selected members
-                var hazmatScript = ObjectManager.Instance.GetObjectsOfType(ObjectManager.ObjectType.HazmatSuits_Stasis)[0] as Obj_HazmatSuit_Stasis;
-                if (hazmatScript != null)
+                Obj_HazmatSuit_Stasis hazmatScript;
+                if (FpeRuntimeGuards.TryGetStasisHazmatSuit(out hazmatScript))
                 {
                     var elig = panel.eligiblePeople;
                     
