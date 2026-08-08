@@ -21,7 +21,7 @@ namespace FourPersonExpeditions
             var elig = panel.eligiblePeople;
             if (elig == null || elig.Count == 0) return false;
 
-            int activeSlot = logic.ActiveSelectionSlot;
+            int activeSlot = logic.NormalizeActiveSelectionSlot();
             int currentIndex = logic.HighlightedIndices[activeSlot];
 
             // Calculate the next candidate index, skipping those already tagged for the expedition
@@ -52,7 +52,7 @@ namespace FourPersonExpeditions
             var elig = panel.eligiblePeople;
             if (elig == null || elig.Count == 0) return false;
 
-            int activeSlot = logic.ActiveSelectionSlot;
+            int activeSlot = logic.NormalizeActiveSelectionSlot();
             int currentIndex = logic.HighlightedIndices[activeSlot];
 
             int prevAvailableIndex = PartySetupNavigationUtil.FindNextAvailableIndex(currentIndex, elig.Count, logic, -1, elig);

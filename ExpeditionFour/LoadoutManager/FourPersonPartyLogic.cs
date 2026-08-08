@@ -78,8 +78,28 @@ namespace FourPersonExpeditions
         /// </summary>
         private void EnsureStateListsSize()
         {
+            MaxPartySize = Mathf.Max(2, MaxPartySize);
             while (SelectedMemberIndices.Count < MaxPartySize) SelectedMemberIndices.Add(-1);
             while (HighlightedIndices.Count < MaxPartySize) HighlightedIndices.Add(-1);
+            while (SelectedMemberIndices.Count > MaxPartySize) SelectedMemberIndices.RemoveAt(SelectedMemberIndices.Count - 1);
+            while (HighlightedIndices.Count > MaxPartySize) HighlightedIndices.RemoveAt(HighlightedIndices.Count - 1);
+        }
+
+        /// <summary>
+        /// Restores the active selector slot to the configured range before UI code indexes state lists.
+        /// </summary>
+        public int NormalizeActiveSelectionSlot()
+        {
+            EnsureStateListsSize();
+
+            int normalizedSlot = Mathf.Clamp(ActiveSelectionSlot, 0, MaxPartySize - 1);
+            if (normalizedSlot != ActiveSelectionSlot)
+            {
+                FPELog.Warn($"[FPE] Selector slot {ActiveSelectionSlot} was outside 0..{MaxPartySize - 1}; refreshing slot {normalizedSlot}.");
+                ActiveSelectionSlot = normalizedSlot;
+            }
+
+            return normalizedSlot;
         }
 
         // --- Paging logic for the Map screen ---

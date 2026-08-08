@@ -180,7 +180,7 @@ namespace FourPersonExpeditions
 
     internal static class UIDebug
     {
-        public static bool Enabled;
+        public static bool Enabled = false;
 
         public static void TakeSnapshot(GameObject go, string label)
         {

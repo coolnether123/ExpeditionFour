@@ -13,9 +13,13 @@
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <SmmRepoRoot>..\..\..\_Archived\Sheltered Modding\shelteredmodmanager</SmmRepoRoot>
-    <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('D:\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\mscorlib.dll')">D:\Epic Games\Sheltered\ShelteredWindows64_EOS_Data\Managed</ShelteredManagedRoot>
+    <ShelteredInstallDir Condition="'$(ShelteredInstallDir)' == '' and Exists('D:\Epic Games Games\Sheltered\ShelteredWindows64_EOS_Data\Managed\mscorlib.dll')">D:\Epic Games Games\Sheltered\</ShelteredInstallDir>
+    <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and '$(ShelteredInstallDir)' != ''">$(ShelteredInstallDir)ShelteredWindows64_EOS_Data\Managed</ShelteredManagedRoot>
     <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('D:\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed\mscorlib.dll')">D:\SteamLibrary\steamapps\common\Sheltered\Sheltered_Data\Managed</ShelteredManagedRoot>
     <ShelteredManagedRoot Condition="'$(ShelteredManagedRoot)' == '' and Exists('C:\Program Files (x86)\GOG Galaxy\Games\Sheltered\Sheltered_Data\Managed\mscorlib.dll')">C:\Program Files (x86)\GOG Galaxy\Games\Sheltered\Sheltered_Data\Managed</ShelteredManagedRoot>
+    <ShelteredSmmRoot Condition="'$(ShelteredSmmRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\shelteredmodmanager\Dist\SMM\bin\0Harmony.dll')">$(MSBuildThisFileDirectory)..\..\shelteredmodmanager\Dist\SMM</ShelteredSmmRoot>
+    <ShelteredModApiRoot Condition="'$(ShelteredModApiRoot)' == '' and Exists('$(ShelteredSmmRoot)\ModAPI.dll')">$(ShelteredSmmRoot)</ShelteredModApiRoot>
+    <ShelteredApiRoot Condition="'$(ShelteredApiRoot)' == '' and Exists('$(ShelteredSmmRoot)\bin\ShelteredAPI.dll')">$(ShelteredSmmRoot)\bin</ShelteredApiRoot>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

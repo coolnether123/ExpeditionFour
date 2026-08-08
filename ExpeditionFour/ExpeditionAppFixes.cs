@@ -79,9 +79,7 @@ namespace FourPersonExpeditions
                 // -----------------------------------
                 // 1. Water / Battery Consumption
                 // -----------------------------------
-                bool isStasis = false;
-                if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
-                    isStasis = true;
+                bool isStasis = FpeRuntimeGuards.IsStasisMode();
 
                 if (isStasis)
                 {

@@ -14,26 +14,27 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         var logic = __instance.gameObject.GetComponent<FourPersonPartyLogic>();
         if (logic == null || __instance.PartySetup == null || !__instance.PartySetup.activeInHierarchy) return true;
 
-        int index = logic.HighlightedIndices[logic.ActiveSelectionSlot];
+        int activeSlot = logic.NormalizeActiveSelectionSlot();
+        int index = logic.HighlightedIndices[activeSlot];
         
         // Temporarily store selection for validation
-        int oldSelection = logic.SelectedMemberIndices[logic.ActiveSelectionSlot];
-        logic.SelectedMemberIndices[logic.ActiveSelectionSlot] = index;
+        int oldSelection = logic.SelectedMemberIndices[activeSlot];
+        logic.SelectedMemberIndices[activeSlot] = index;
 
         // Perform Validation Checks (Empty Shelter, Loyalty, Food Poisoning)
         if (ValidateSelection(__instance, logic))
         {
             // Validation failed, restore previous selection and stay on page
-            logic.SelectedMemberIndices[logic.ActiveSelectionSlot] = oldSelection;
+            logic.SelectedMemberIndices[activeSlot] = oldSelection;
             return false;
         }
 
-        FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {logic.ActiveSelectionSlot}, Character Index: {index}.");
+        FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {activeSlot}, Character Index: {index}.");
 
-        if (index != -1 && logic.ActiveSelectionSlot < logic.MaxPartySize - 1)
+        if (index != -1 && activeSlot < logic.MaxPartySize - 1)
         {
             FPELog.Debug("OnSelect Patch: Advancing to next party slot.");
-            logic.ActiveSelectionSlot++;
+            logic.ActiveSelectionSlot = activeSlot + 1;
             logic.HighlightedIndices[logic.ActiveSelectionSlot] = -1; // Force user to pick
 
             __instance.partySetupScript?.SendMessage("UpdatePage", SendMessageOptions.DontRequireReceiver);
@@ -60,7 +61,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         if (CheckEmptyShelter4(panel, logic)) return true;
 
         // 4. Hazmat Check (Stasis mode)
-        if ((Object)GameModeManager.instance != (Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
+        if (FpeRuntimeGuards.IsStasisMode())
         {
             if (!CheckHazmat4(panel, logic)) return true;
         }
@@ -75,6 +76,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
             stayingBehind.AddRange(FamilyManager.Instance.GetAllFamilyMembers());
 
         var elig = panel.eligiblePeople;
+        if (elig == null) return true;
         foreach (int selIndex in logic.SelectedMemberIndices)
         {
             if (selIndex >= 0 && selIndex < elig.Count)
@@ -99,6 +101,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
     private static bool CheckLoyalty4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
         var elig = panel.eligiblePeople;
+        if (elig == null || ExplorationManager.Instance == null) return true;
         float disloyalNeedThreshold = ExplorationManager.Instance.disloyalNeedThreshold;
         bool isVeryDisloyal = false;
         bool hasHighNeedsDisloyal = false;
@@ -114,6 +117,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
                     isVeryDisloyal = true;
                 
                 BehaviourStats stats = person.stats;
+                if (stats == null) continue;
                 if (stats.hunger.NormalizedValue >= disloyalNeedThreshold || 
                     stats.thirst.NormalizedValue >= disloyalNeedThreshold || 
                     stats.fatigue.NormalizedValue >= disloyalNeedThreshold || 
@@ -135,6 +139,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
     private static bool CheckFoodPoisoning4(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
         var elig = panel.eligiblePeople;
+        if (elig == null) return true;
         foreach (int selIndex in logic.SelectedMemberIndices)
         {
             if (selIndex < 0 || selIndex >= elig.Count) continue;
@@ -158,10 +163,12 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         }
 
         var elig = panel.eligiblePeople;
+        if (elig == null) return false;
         foreach (int selIndex in logic.SelectedMemberIndices)
         {
             if (selIndex < 0 || selIndex >= elig.Count) continue;
             var person = elig[selIndex];
+            if (person == null) continue;
             int suitIdx = -1;
             switch (person.firstName)
             {
@@ -199,6 +206,7 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
         FPELog.Debug("UpdatePartyMembers Patch: Assigning selected family members to the party.");
         int max = Mathf.Min(logic.MaxPartySize, logic.AllPartyMembers.Count);
         var elig = __instance.eligiblePeople;
+        if (elig == null) return true;
         for (int i = 0; i < max; i++)
         {
             var partyMember = logic.AllPartyMembers[i];
@@ -217,7 +225,7 @@ public static class ExpeditionMainPanelNew_UpdatePartyMembers_Patch
             }
         }
 
-        if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
+        if (FpeRuntimeGuards.IsStasisMode())
         {
             for (int i = 0; i < max; i++)
             {
@@ -279,7 +287,7 @@ public static class ExpeditionMainPanelNew_Update_Patch
 {
     public static void Postfix(ExpeditionMainPanelNew __instance)
     {
-        if (__instance == null || !__instance.MapScreen.activeInHierarchy) return;
+        if (__instance == null || __instance.MapScreen == null || !__instance.MapScreen.activeInHierarchy) return;
 
         var logic = __instance.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return;
@@ -300,15 +308,17 @@ public static class ExpeditionMainPanelNew_Update_Patch
         int petrolReq = Safe.GetFieldOrDefault(__instance, "m_petrolRequired", 0);
         
         bool enoughResources = true;
-        if ((UnityEngine.Object)GameModeManager.instance != (UnityEngine.Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
+        if (FpeRuntimeGuards.IsStasisMode())
         {
              bool sufficientBattery = Safe.GetFieldOrDefault(__instance, "m_sufficientBatteryForTrip", false);
              enoughResources = sufficientBattery;
         }
         else
         {
-            enoughResources = (WaterManager.Instance.StoredWater >= waterReq) && 
-                             (InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolReq);
+            enoughResources = WaterManager.Instance != null
+                && InventoryManager.Instance != null
+                && WaterManager.Instance.StoredWater >= waterReq
+                && InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolReq;
         }
 
         bool allSelectedCanMove = true;

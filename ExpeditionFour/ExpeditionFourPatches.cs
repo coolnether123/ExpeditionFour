@@ -22,6 +22,9 @@ namespace FourPersonExpeditions
 
         public static void CorrectWaterRequirement(ExpeditionMainPanelNew panel)
         {
+            if (panel == null || panel.gameObject == null || ExplorationManager.Instance == null)
+                return;
+
             var logic = panel.gameObject.GetComponent<FourPersonPartyLogic>();
             if (logic == null) return;
 
@@ -32,9 +35,7 @@ namespace FourPersonExpeditions
             float dist = Safe.GetFieldOrDefault<float>(panel, "m_routeDistance", 0f);
             
             // Stasis Mode check
-            bool isStasis = false;
-            if ((Object)GameModeManager.instance != (Object)null && GameModeManager.instance.currentGameMode == GameModeManager.GameMode.Stasis)
-                isStasis = true;
+            bool isStasis = FpeRuntimeGuards.IsStasisMode();
 
             bool useVehicle = Safe.GetFieldOrDefault(panel, "useVehicle", false);
             bool useHorse = Safe.GetFieldOrDefault(panel, "useHorse", false);
@@ -71,22 +72,32 @@ namespace FourPersonExpeditions
             // Update UI Labels so player sees correct numbers
             if (!isStasis)
             {
-                if (panel.waterRequiredLabel != null && (Object)WaterManager.Instance != (Object)null)
-                    panel.waterRequiredLabel.text = Mathf.Ceil(finalReq).ToString("N0") + "/" + WaterManager.Instance.StoredWater.ToString("N0");
-                if (panel.petrolRequiredLabel != null)
-                    panel.petrolRequiredLabel.text = Mathf.Ceil((float)petrol).ToString("N0") + "/" + InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol).ToString("N0");
+                var waterManager = WaterManager.Instance;
+                var inventoryManager = InventoryManager.Instance;
+                float storedWater = waterManager != null ? waterManager.StoredWater : 0f;
+                int storedPetrol = inventoryManager != null
+                    ? inventoryManager.GetNumItemsOfType(ItemManager.ItemType.Petrol)
+                    : 0;
 
-                ApplyWaterWarningState(panel, finalReq >= WaterManager.Instance.StoredWater);
-                ApplyPetrolWarningState(panel, petrol > InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol));
+                if (panel.waterRequiredLabel != null && waterManager != null)
+                    panel.waterRequiredLabel.text = Mathf.Ceil(finalReq).ToString("N0") + "/" + storedWater.ToString("N0");
+                if (panel.petrolRequiredLabel != null && inventoryManager != null)
+                    panel.petrolRequiredLabel.text = Mathf.Ceil((float)petrol).ToString("N0") + "/" + storedPetrol.ToString("N0");
+
+                ApplyWaterWarningState(panel, waterManager == null || finalReq >= storedWater);
+                ApplyPetrolWarningState(panel, inventoryManager == null || petrol > storedPetrol);
             }
             else
             {
                 // Stasis mode battery calculation - need to get combined battery for all selected members
+                Safe.SetField(panel, "m_sufficientBatteryForTrip", false);
                 Obj_HazmatSuit_Stasis hazmatScript;
-                if (FpeRuntimeGuards.TryGetStasisHazmatSuit(out hazmatScript))
+                var elig = panel.eligiblePeople;
+                if (!FpeRuntimeGuards.TryGetStasisHazmatSuit(out hazmatScript) || elig == null)
+                    return;
+
+                if (hazmatScript != null)
                 {
-                    var elig = panel.eligiblePeople;
-                    
                     // Map selected members to their hazmat suit indices
                     int[] suitIndices = new int[4] { -1, -1, -1, -1 };
                     int suitCount = 0;
@@ -97,6 +108,7 @@ namespace FourPersonExpeditions
                         if (selIdx >= 0 && selIdx < elig.Count)
                         {
                             var person = elig[selIdx];
+                            if (person == null) continue;
                             switch (person.firstName)
                             {
                                 case "Gregory": suitIndices[suitCount++] = 0; break;
@@ -326,17 +338,14 @@ namespace FourPersonExpeditions
                 float waterRequired = Safe.GetFieldOrDefault(panel, "m_waterRequired", 0f);
                 int petrolRequired = Safe.GetFieldOrDefault(panel, "m_petrolRequired", 0);
 
-                if ((Object)GameModeManager.instance != (Object)null)
+                if (FpeRuntimeGuards.IsStasisMode())
                 {
-                    if (GameModeManager.instance.currentGameMode != GameModeManager.GameMode.Stasis)
-                    {
-                        if (WaterManager.Instance.UseWater(waterRequired))
-                            ExplorationManager.Instance.SetWater(partyId, waterRequired, WaterManager.Instance.Contamination);
-                    }
-                    else
-                    {
-                        ExplorationManager.Instance.SetBattery(partyId, waterRequired);
-                    }
+                    ExplorationManager.Instance.SetBattery(partyId, waterRequired);
+                }
+                else if ((Object)WaterManager.Instance != (Object)null)
+                {
+                    if (WaterManager.Instance.UseWater(waterRequired))
+                        ExplorationManager.Instance.SetWater(partyId, waterRequired, WaterManager.Instance.Contamination);
                 }
 
                 if (InventoryManager.Instance.GetNumItemsOfType(ItemManager.ItemType.Petrol) >= petrolRequired)

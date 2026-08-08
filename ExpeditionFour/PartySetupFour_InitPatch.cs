@@ -90,17 +90,11 @@ namespace FourPersonExpeditions
             var logic = panel.gameObject.GetComponent<FourPersonPartyLogic>();
             if (logic == null || !logic.isInitialized) return;
 
+            int activeSlot = logic.NormalizeActiveSelectionSlot();
             var elig = panel.eligiblePeople;
             if (elig == null)
             {
                 UpdateStatsUI(__instance, null);
-                return;
-            }
-
-            int activeSlot = logic.ActiveSelectionSlot;
-            if (activeSlot < 0 || activeSlot >= logic.SelectedMemberIndices.Count)
-            {
-                FPELog.Warn($"[FPE] UpdatePage: Active selection slot {activeSlot} is outside the configured party size.");
                 return;
             }
 
@@ -165,7 +159,8 @@ namespace FourPersonExpeditions
 
                 setup.healthLabel.text = $"{person.health}/{person.maxHealth}";
                 setup.statusLabel.text = person.GetLocalizedStatusText();
-                setup.illnessLabel.text = person.illness.ToString();
+                if (setup.illnessLabel != null)
+                    setup.illnessLabel.text = person.illness != null ? person.illness.ToString() : string.Empty;
 
                 if (stats != null)
                 {
@@ -184,23 +179,31 @@ namespace FourPersonExpeditions
                         setup.loyaltyBar.gameObject.SetActive(person.loyalty != FamilyMember.LoyaltyEnum.Loyal);
                 }
 
-                List<string> traitNames = new List<string>();
-                traitNames.AddRange(person.traits.GetLocalizedStrengthNames(true));
-                traitNames.AddRange(person.traits.GetLocalizedWeaknessNames(true));
-                setup.memberTraits.text = string.Join(", ", traitNames.ToArray());
+                if (setup.memberTraits != null)
+                {
+                    List<string> traitNames = new List<string>();
+                    if (person.traits != null)
+                    {
+                        traitNames.AddRange(person.traits.GetLocalizedStrengthNames(true));
+                        traitNames.AddRange(person.traits.GetLocalizedWeaknessNames(true));
+                    }
+                    setup.memberTraits.text = string.Join(", ", traitNames.ToArray());
+                }
             }
             else
             {
                 // Clear all stat UI elements if no character is selected
                 setup.statusLabel.text = string.Empty;
                 setup.healthLabel.text = string.Empty;
-                setup.illnessLabel.text = string.Empty;
+                if (setup.illnessLabel != null)
+                    setup.illnessLabel.text = string.Empty;
                 setup.memberCharisma.text = string.Empty;
                 setup.memberDexterity.text = string.Empty;
                 setup.memberIntelligence.text = string.Empty;
                 setup.memberPerception.text = string.Empty;
                 setup.memberStrength.text = string.Empty;
-                setup.memberTraits.text = string.Empty;
+                if (setup.memberTraits != null)
+                    setup.memberTraits.text = string.Empty;
 
                 Safe.InvokeMethod(setup, "SetBarValue", setup.strengthBar, 0.0f, false);
                 Safe.InvokeMethod(setup, "SetBarValue", setup.dexterityBar, 0.0f, false);
@@ -224,6 +227,7 @@ namespace FourPersonExpeditions
         private static void UpdateAvatarUI(ExpeditionPartySetup.MemberAvatar avatar, FourPersonPartyLogic logic, int slotIndex, IList<FamilyMember> elig)
         {
             UICloneUtil.SetAvatarActive(avatar, true);
+            if (avatar == null) return;
 
             int characterIndexToShow = (slotIndex == logic.ActiveSelectionSlot)
                 ? logic.HighlightedIndices[slotIndex]
@@ -285,7 +289,7 @@ namespace FourPersonExpeditions
                     break;
                 }
             }
-            if (setupInstance.memberRightArrow != null) setupInstance.memberRightArrow.GetComponent<UIButton>().isEnabled = canGoNext;
+            SetArrowEnabled(setupInstance.memberRightArrow, canGoNext);
 
             bool canGoPrev = false;
             for (int i = 1; i <= elig.Count + 1; i++)
@@ -307,7 +311,16 @@ namespace FourPersonExpeditions
                     break;
                 }
             }
-            if (setupInstance.memberLeftArrow != null) setupInstance.memberLeftArrow.GetComponent<UIButton>().isEnabled = canGoPrev;
+            SetArrowEnabled(setupInstance.memberLeftArrow, canGoPrev);
+        }
+
+        private static void SetArrowEnabled(GameObject arrow, bool enabled)
+        {
+            if (arrow == null) return;
+
+            UIButton button = arrow.GetComponent<UIButton>();
+            if (button != null)
+                button.isEnabled = enabled;
         }
     }
 }
