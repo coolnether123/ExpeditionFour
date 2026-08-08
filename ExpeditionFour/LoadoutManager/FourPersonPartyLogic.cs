@@ -128,7 +128,7 @@ namespace FourPersonExpeditions
                 int currentIndex = 0;
                 Safe.TryGetField(panel, "m_currentPartyIndex", out currentIndex);
 
-                if (allParties == null || currentIndex >= allParties.Count || allParties[currentIndex] == null)
+                if (allParties == null || currentIndex < 0 || currentIndex >= allParties.Count || allParties[currentIndex] == null)
                 {
                     FPELog.Warn($"NextMapPage: Invalid party state at index {currentIndex}");
                     return;

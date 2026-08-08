@@ -36,6 +36,12 @@ namespace FourPersonExpeditions.UI
                 return false;
             }
 
+            if (summaries.Count == 0)
+            {
+                FPELog.Warn($"SummaryPanelExpander: Field '{summariesFieldName}' has no template slots.");
+                return false;
+            }
+
             // Check if expansion is needed
             if (summaries.Count >= TARGET_SLOT_COUNT)
             {
@@ -68,16 +74,24 @@ namespace FourPersonExpeditions.UI
             while (summaries.Count < TARGET_SLOT_COUNT)
             {
                 var cloneGo = UIHelper.Clone(template.gameObject, template.transform.parent);
+                if (cloneGo == null)
+                {
+                    FPELog.Warn("SummaryPanelExpander: Failed to clone a summary slot.");
+                    return false;
+                }
                 cloneGo.name = $"{template.name}_FPE_{summaries.Count}";
 
                 var newSummary = cloneGo.GetComponent<EncounterSummaryCharacter>();
                 var newCharacter = cloneGo.GetComponentInChildren<EncounterCharacter>(true);
 
-                if (newSummary != null)
+                if (newSummary == null)
                 {
-                    FixClonedMaterials(newSummary);
-                    summaries.Add(newSummary);
+                    FPELog.Warn("SummaryPanelExpander: Cloned summary slot is missing EncounterSummaryCharacter.");
+                    return false;
                 }
+
+                FixClonedMaterials(newSummary);
+                summaries.Add(newSummary);
 
                 if (newCharacter != null && !string.IsNullOrEmpty(charactersFieldName))
                 {

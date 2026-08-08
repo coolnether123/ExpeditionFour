@@ -16,6 +16,19 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
 
         int activeSlot = logic.NormalizeActiveSelectionSlot();
         int index = logic.HighlightedIndices[activeSlot];
+        var eligiblePeople = __instance.eligiblePeople;
+        if (eligiblePeople == null)
+        {
+            FPELog.Warn("[FPE] OnSelect rejected because the eligible character list is unavailable.");
+            return false;
+        }
+
+        if (index < -1 || index >= eligiblePeople.Count ||
+            (index >= 0 && logic.IsIndexSelected(index)))
+        {
+            FPELog.Warn($"[FPE] OnSelect rejected invalid or duplicate character index {index} for slot {activeSlot}.");
+            return false;
+        }
         
         // Temporarily store selection for validation
         int oldSelection = logic.SelectedMemberIndices[activeSlot];
@@ -110,6 +123,7 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         {
             if (selIndex < 0 || selIndex >= elig.Count) continue;
             var person = elig[selIndex];
+            if (person == null) continue;
             
             if (!person.isLoyal)
             {

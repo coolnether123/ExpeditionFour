@@ -23,7 +23,8 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         FPELog.Debug($"[FPE] OnExtra1 Prefix: Page={pageValue}, ActiveLoadoutIndex={logic.ActiveLoadoutIndex}, LoadoutScreen.active={__instance.LoadoutScreen.activeInHierarchy}");
 
         // CRITICAL: Ensure characters are assigned to the correct PartyMember components before any loadout logic
-        AssignPeopleToPartyMembers(__instance, logic);
+        if (!AssignPeopleToPartyMembers(__instance, logic))
+            return false;
 
         // If ActiveLoadoutIndex >= 0 AND the LoadoutScreen is visible, we're already in loadout mode.
         if (logic.ActiveLoadoutIndex >= 0 && __instance.LoadoutScreen.activeInHierarchy)
@@ -91,11 +92,16 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
     /// Synchronizes the FamilyMember references from our selection logic into the actual PartyMember components.
     /// This ensures that the loadout screen and final expedition registration see the correct characters.
     /// </summary>
-    private static void AssignPeopleToPartyMembers(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
+    private static bool AssignPeopleToPartyMembers(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
         EnsurePartyMemberSlots(panel, logic);
 
         var elig = panel.eligiblePeople;
+        if (elig == null)
+        {
+            FPELog.Warn("[FPE] AssignPeopleToPartyMembers: eligible character list is unavailable.");
+            return false;
+        }
         int max = Mathf.Min(logic.MaxPartySize, logic.AllPartyMembers.Count);
         
         for (int i = 0; i < max; i++)
@@ -113,6 +119,8 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
                 pm.person = null;
             }
         }
+
+        return true;
     }
 
     private static void EnsurePartyMemberSlots(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)

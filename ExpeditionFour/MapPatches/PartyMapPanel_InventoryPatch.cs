@@ -31,7 +31,7 @@ namespace FourPersonExpeditions.MapPatches
                 int currentPartyIndex = 0;
                 Safe.TryGetField(__instance, "m_currentPartyIndex", out currentPartyIndex);
 
-                if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count)
+                if (editPanel == null || allParties == null || currentPartyIndex < 0 || currentPartyIndex >= allParties.Count)
                 {
                     FPELog.Warn($"OpenWeaponEquipWindowP1: Missing fields or invalid index. EditPanel: {editPanel != null}, Parties: {allParties != null}, Index: {currentPartyIndex}");
                     return true;
@@ -79,7 +79,7 @@ namespace FourPersonExpeditions.MapPatches
                 int currentPartyIndex = 0;
                 Safe.TryGetField(__instance, "m_currentPartyIndex", out currentPartyIndex);
 
-                if (editPanel == null || allParties == null || currentPartyIndex >= allParties.Count)
+                if (editPanel == null || allParties == null || currentPartyIndex < 0 || currentPartyIndex >= allParties.Count)
                 {
                     FPELog.Warn($"OpenWeaponEquipWindowP2: Missing fields or invalid index. EditPanel: {editPanel != null}, Parties: {allParties != null}, Index: {currentPartyIndex}");
                     return true;

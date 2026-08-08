@@ -61,6 +61,8 @@ namespace FourPersonExpeditions.MapPatches
                     return true;
                 }
 
+                UpdatePartyNavigationState(panel, state);
+
                 if (!state.HasCurrentParty)
                 {
                     SetMemberSlotsActive(state, false);
@@ -404,6 +406,20 @@ namespace FourPersonExpeditions.MapPatches
 
             int displayIndex = Mathf.Clamp(state.CurrentPartyIndex + 1, 1, partyCount);
             countLabel.text = string.Format("{0}/{1}", displayIndex, partyCount);
+        }
+
+        private static void UpdatePartyNavigationState(PartyMapPanel panel, PartyMapPanelState state)
+        {
+            bool hasParties = state.HasAnyParties;
+            SetActive(GetTemplateGameObject(panel, "m_partySelectNext"), hasParties);
+            SetActive(GetTemplateGameObject(panel, "m_partySelectPrev"), hasParties);
+            Safe.InvokeMethod(panel, "UpdateStasisPartySelectButtons");
+        }
+
+        private static void SetActive(GameObject target, bool isActive)
+        {
+            if (target != null)
+                target.SetActive(isActive);
         }
 
         private static void UpdateRecallState(PartyMapPanel panel, PartyMapPanelState state)
