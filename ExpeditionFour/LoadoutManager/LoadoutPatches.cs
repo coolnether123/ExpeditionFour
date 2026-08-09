@@ -209,7 +209,6 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         }
     }
 }
-
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), nameof(ExpeditionMainPanelNew.OnCancel))]
 internal static class ExpeditionMainPanelNew_OnCancel_LoadoutPatch
 {
@@ -307,29 +306,5 @@ internal static class ExpeditionMainPanelNew_OnCancel_LoadoutPatch
         };
 
         Safe.InvokeMethod(panel, "DelayedPageChange", pageAction);
-    }
-}
-
-/// <summary>
-/// Debug patch to trace all UI clicks and identify blocking elements.
-/// </summary>
-[HarmonyPatch(typeof(UICamera), "Update")]
-public static class UIDebug_ClickTracker_Patch
-{
-    public static void Postfix()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            GameObject hovered = UICamera.hoveredObject;
-            if (hovered != null)
-            {
-                FPELog.Debug($"[UIDebug] Mouse Click: {hovered.name} (Layer={hovered.layer})");
-                UIDebug.TakeSnapshot(hovered, "Click Target");
-            }
-            else
-            {
-                FPELog.Debug("[UIDebug] Mouse Click: (None)");
-            }
-        }
     }
 }
