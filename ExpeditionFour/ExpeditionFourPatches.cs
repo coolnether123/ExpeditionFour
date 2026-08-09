@@ -275,7 +275,32 @@ namespace FourPersonExpeditions
                 }
                 
                 var route = panel.route;
-                int selectedCount = logic.SelectedMemberIndices.Count(i => i != -1);
+                var eligible = panel.eligiblePeople;
+                var selectedIndexes = new HashSet<int>();
+                if (eligible == null)
+                {
+                    FPELog.Warn("FinaliseExpedition: Eligible character list is unavailable.");
+                    __result = false;
+                    return false;
+                }
+
+                for (int i = 0; i < logic.SelectedMemberIndices.Count; i++)
+                {
+                    int selectedIndex = logic.SelectedMemberIndices[i];
+                    if (selectedIndex == -1)
+                        continue;
+
+                    if (selectedIndex < 0
+                        || selectedIndex >= eligible.Count
+                        || !selectedIndexes.Add(selectedIndex))
+                    {
+                        FPELog.Warn("FinaliseExpedition: Selection state contains an invalid or duplicate character index.");
+                        __result = false;
+                        return false;
+                    }
+                }
+
+                int selectedCount = selectedIndexes.Count;
 
                 if (selectedCount == 0 || route == null || route.Count == 0)
                 {
@@ -285,7 +310,8 @@ namespace FourPersonExpeditions
                 }
 
                 if (ExplorationManager.Instance == null
-                    || (!FpeRuntimeGuards.IsStasisMode() && InventoryManager.Instance == null)
+                    || InventoryManager.Instance == null
+                    || (!FpeRuntimeGuards.IsStasisMode() && WaterManager.Instance == null)
                     || !HasSufficientLaunchResources(panel))
                 {
                     FPELog.Warn("FinaliseExpedition: Launch resources are no longer available. " + DescribeExpeditionState(panel, logic));

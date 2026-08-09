@@ -94,7 +94,15 @@ namespace FourPersonExpeditions.MapPatches
             FourPersonPartyLogic logic = panel.gameObject.GetComponent<FourPersonPartyLogic>();
             if (logic != null)
             {
+                bool pageChanged = logic.mapScreenPage != 0;
                 logic.mapScreenPage = 0;
+                if (pageChanged)
+                {
+                    // OnTabRight/OnTabLeft are patched in Postfix, after the
+                    // vanilla handler has already refreshed the panel. Force
+                    // the newly selected party to render page one immediately.
+                    Safe.InvokeMethod(panel, "UpdateUI");
+                }
             }
         }
 

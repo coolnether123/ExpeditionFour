@@ -26,6 +26,33 @@ namespace FourPersonExpeditions
             {
                 var party = ExplorationManager.Instance.GetParty(partyId);
 
+                // Vanilla OnShow returns before ShowPartySetup when its first
+                // CreateNewParty call leaves m_partyId at -1. This can happen
+                // when the radio is reopened immediately after a returned
+                // party has been finalized. Retry through the vanilla seams so
+                // the normal setup initialization can recover without
+                // disturbing a valid party/resume path.
+                if (party == null && partyId == -1)
+                {
+                    FPELog.Warn("[FPE] OnShow: No active party after vanilla setup; retrying CreateNewParty.");
+                    Safe.InvokeMethod(__instance, "CreateNewParty");
+
+                    if (Safe.TryGetField(__instance, "m_partyId", out partyId)
+                        && partyId >= 0)
+                    {
+                        party = ExplorationManager.Instance.GetParty(partyId);
+                        if (party != null)
+                        {
+                            // Keep the post-return recovery aligned with the
+                            // successful vanilla OnShow sequence.
+                            ExplorationManager.Instance.AssignStasisPartyMapNumber(partyId);
+                            Safe.InvokeMethod(__instance, "ShowPartySetup");
+                            Safe.InvokeMethod(__instance, "ClearAllWaypoints");
+                            FPELog.Debug($"[FPE] OnShow: Recovered fresh party {partyId} and reopened party setup.");
+                        }
+                    }
+                }
+
                 if (party != null)
                 {
                     // Synchronize from current party components.

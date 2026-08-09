@@ -278,11 +278,17 @@ public static class ExpeditionMainPanelNew_Update_Patch
         var logic = __instance.GetComponent<FourPersonPartyLogic>();
         if (logic == null) return;
 
-        // 1. Check if at least one person is selected
+        var elig = __instance.eligiblePeople;
+
+        // 1. Check if at least one valid person is selected
         bool anyoneSelected = false;
         foreach (int idx in logic.SelectedMemberIndices)
         {
-            if (idx != -1) { anyoneSelected = true; break; }
+            if (idx >= 0 && elig != null && idx < elig.Count)
+            {
+                anyoneSelected = true;
+                break;
+            }
         }
 
         // 2. Check route
@@ -295,7 +301,6 @@ public static class ExpeditionMainPanelNew_Update_Patch
         bool allSelectedCanMove = true;
         if (anyoneSelected)
         {
-            var elig = __instance.eligiblePeople;
             if (elig == null)
             {
                 allSelectedCanMove = false;
