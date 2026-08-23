@@ -3,7 +3,7 @@ using ModAPI.Core;
 
 namespace FourPersonExpeditions
 {
-    // Plugin entry. Applies Harmony patches and seeds expanded party capacity.
+    // Applies Harmony patches and initializes four-member party state.
     public class MyPlugin : IModPlugin
     {
         private static IPluginContext _ctx;
@@ -16,7 +16,6 @@ namespace FourPersonExpeditions
 
         public void Start(IPluginContext ctx)
         {
-            // Apply patches
             var harmony = new Harmony("Coolnether123.FourPersonExpeditions");
 
             try

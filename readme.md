@@ -1,48 +1,47 @@
 # Four Person Expeditions
 
-**Version:** 1.1.4
-**Author:** Coolnether123
-**Requires:** Sheltered Mod Manager 2.0 with ModAPI/ShelteredAPI 2.0
+Version 1.1.4 by Coolnether123.
 
-## Description
+Four Person Expeditions raises Sheltered's expedition limit from two survivors to four. It extends party setup, loadouts, resource calculations, combat, the expedition map, and summary screens to handle the extra members.
 
-Expands Sheltered's expedition system to support 4-person parties instead of the vanilla 2-person limit. Expedition-related systems have been updated to support the larger party size.
+## What the mod changes
 
-## Features
+- Select up to four survivors for an expedition.
+- Configure each survivor's loadout separately.
+- Leave optional slots empty with the **Nobody** portrait.
+- Scale water, petrol, and Stasis suit battery costs for the selected party.
+- Include all selected survivors in combat encounters.
+- Page through party members on the expedition map with the on-screen controls.
+- Show all party members on exploration, combat, and dialogue summary screens.
 
-- **4-Person Expeditions** - Take up to four characters on any expedition
-- **Individual Loadouts** - Configure equipment for each party member separately
-- **Sequential Selection** - Choose party members one at a time with visual feedback
-- **Resource Scaling** - Water and fuel calculations adjusted for larger parties
-- **Combat Support** - All four party members participate in combat encounters
-- **Map Navigation** - Page between party members on the expedition map using arrow keys
-- **Full XP Display** - All summary screens (exploration, combat, dialogue) show XP gains for all four members
+## Requirements
 
-## Installation
+- Sheltered Mod Manager 2.0
+- ModAPI 2.0
+- ShelteredAPI 2.0
 
-1. Install Sheltered Mod Manager 2.0 with ModAPI/ShelteredAPI 2.0
-2. Download the latest release of Four Person Expeditions
-3. Extract the mod folder into your game's `mods` directory
-4. Enable the mod in the Mod Manager
-5. Launch the game
+## Install the mod
 
-## Usage
+1. Install Sheltered Mod Manager and its required APIs.
+2. Download the latest Four Person Expeditions release.
+3. Extract the mod folder into the game's `mods` directory.
+4. Enable **Four Person Expeditions** in Sheltered Mod Manager.
+5. Start the game.
 
-Start an expedition as normal. The party selection window allows up to four members. To leave a slot empty, select the "Nobody" portrait. During expeditions, use the left/right arrow keys to page between party members on the map view.
+## Start an expedition
 
-## Known Issues
+Use the radio and create an expedition as usual. The setup panel advances through as many as four survivor slots, followed by one loadout screen for each selected survivor.
 
-- **Character Positioning in Combat**: Minor visual overlaps of character positioning. Does not affect gameplay.
+## Save compatibility
 
-## Compatibility
+Vanilla saves can load with the mod enabled. An expedition that already exists keeps its current members until you create a new one.
 
-- **Vanilla Saves**: Can be loaded. Existing expedition parties remain at 2 members until you start a new expedition.
-- **Mod Saves**: Fully compatible with SMM's save tracking system.
+Before you disable or remove the mod, recall every expedition that has three or four members. Loading such a save without the mod can leave those survivors in an invalid expedition state.
 
-## Save Warning
+## Known issue
 
-- **Before Removing**: Make sure all expeditions with 3 or 4 characters are recalled before loading the save without the mod active.
+Combatants can overlap slightly when a four-person party enters combat. The overlap is visual and does not change combat rules.
 
 ## License
 
-MIT License - See LICENSE file for details.
+Four Person Expeditions is available under the [MIT License](LICENSE).

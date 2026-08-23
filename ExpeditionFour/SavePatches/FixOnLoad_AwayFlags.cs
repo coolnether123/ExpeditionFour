@@ -51,8 +51,6 @@ namespace FourPersonExpeditions.SavePatches
             var state = __instance.state;
             var mustBeAway = ExpeditionSaveStatePolicy.AwayStates.Contains(state);
 
-            // Removed verbose party load trace for release
-            // FPELog.Info($"Party Load Trace: {FpeDebugFmt.PartyLine(__instance)}");
 
             if (!Safe.TryGetField(__instance, "m_partyMembers", out List<PartyMember> memberList) || memberList == null) 
                 return;
@@ -122,11 +120,6 @@ namespace FourPersonExpeditions.SavePatches
                 }
             }
 
-            // Removed party state repair logic - vanilla handles transitions correctly
-            // and the field access was incorrect (m_stateStack vs m_state)
-
-            // Removed verbose party load completion trace for release
-            // FPELog.Info($"Party Load Trace Completion: {FpeDebugFmt.PartyLine(__instance)}");
         }
 
         private static bool IsNodeOccupied(GameObject node, FamilyMember exclude)

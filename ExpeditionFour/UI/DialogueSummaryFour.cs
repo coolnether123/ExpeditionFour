@@ -5,7 +5,7 @@ using FourPersonExpeditions;
 namespace FourPersonExpeditions.UI
 {
     /// <summary>
-    /// Patches the dialogue encounter summary screen to display up to four members.
+    /// Extends the dialogue encounter summary to four members.
     /// Shows Charisma XP (trade) or Intelligence XP (recruit) gains after dialogue encounters.
     /// </summary>
     [HarmonyPatch(typeof(EncounterDialogueSummaryPanel), "OnShow")]
@@ -14,8 +14,7 @@ namespace FourPersonExpeditions.UI
         static void Prefix(EncounterDialogueSummaryPanel __instance)
         {
             // Expand character slots from 2 to 4
-            // Note: EncounterDialogueSummaryPanel doesn't have m_playerCharacters array,
-            // only characterSummaries list
+            // Unlike the return panel, this panel stores only characterSummaries.
             SummaryPanelExpander.ExpandCharacterSlots(
                 __instance,
                 summariesFieldName: "characterSummaries",
@@ -36,12 +35,9 @@ namespace FourPersonExpeditions.UI
                 return;
             }
 
-            // Add or get our logic component for pagination and auto-advance
             var logic = __instance.gameObject.GetComponent<CombatSummaryLogic>();
             if (logic == null) logic = __instance.gameObject.AddComponent<CombatSummaryLogic>();
 
-            // Initialize logic with the panel and the summary list
-            // This will handle showing only the first page and setting up arrows
             logic.Initialize(__instance, summaries);
         }
     }

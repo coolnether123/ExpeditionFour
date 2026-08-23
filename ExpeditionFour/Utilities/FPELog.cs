@@ -3,8 +3,7 @@ using ModAPI.Core;
 namespace FourPersonExpeditions
 {
     /// <summary>
-    /// Centralized logging helper for the mod.
-    /// Demonstrates best practice for using the IModLogger provided by the ModAPI.
+    /// Routes mod messages through the ModAPI logger.
     /// </summary>
     internal static class FPELog
     {

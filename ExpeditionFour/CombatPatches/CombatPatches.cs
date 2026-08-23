@@ -10,10 +10,8 @@ namespace FourPersonExpeditions.CombatFixes
     #region 1. Dialogue Stage Fix (The Encounter Starter) - SAFER PREFIX
 
     /// <summary>
-    /// This patch fixes the soft-lock during NPC encounters with parties > 2.
-    /// The original code checks 'if (party.Count > 1)' and enters a broken state.
-    /// This Prefix bypasses that faulty logic by ensuring it only runs during an
-    /// active, player-controlled encounter, preventing interference with other UI panels.
+    /// Avoids an NPC-encounter soft lock for parties with more than two members.
+    /// The prefix skips the faulty vanilla branch only during the affected encounter state.
     /// </summary>
     [HarmonyPatch(typeof(DialogueStageOpening), "State_Npc_WaitOpeningText")]
     public static class DialogueStageOpening_Fix
@@ -22,10 +20,7 @@ namespace FourPersonExpeditions.CombatFixes
         {
             try
             {
-                // *** SAFER GUARD CLAUSES ***
-                // 1. Only run during an active encounter.
-                // 2. Critically, only run when the encounter is NOT player-controlled
-                //    (i.e., when an NPC initiates dialogue), which is the specific scenario that breaks.
+                // Only NPC-initiated dialogue enters the faulty vanilla branch.
                 if (EncounterManager.Instance == null || !EncounterManager.Instance.EncounterInProgress || EncounterManager.Instance.isPlayerControlled)
                 {
                     return true; // Let the original method run for all other cases.
@@ -59,8 +54,7 @@ namespace FourPersonExpeditions.CombatFixes
     #endregion
 
     #region 2. Encounter Manager Slot Creation (The Actors)
-    // TODO: For a future version (v0.8+), take a better look at character positioning
-    // to patch over the whole thing and do it custom, rather than relying on game's base positions.
+    // Derive added combat positions from the vanilla formation so other layouts still apply.
     [HarmonyPatch(typeof(EncounterManager), nameof(EncounterManager.StartManager))]
     public static class EncounterManager_StartManager_Patch
     {
@@ -148,7 +142,6 @@ namespace FourPersonExpeditions.CombatFixes
     #endregion
 
     #region 3. Combat Panel UI Fix (The Stage)
-    // This section remains the same as it is correct.
     [HarmonyPatch]
     public static class EncounterCombatPanel_Fixes
     {

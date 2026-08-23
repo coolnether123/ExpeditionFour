@@ -5,7 +5,7 @@ using FourPersonExpeditions;
 namespace FourPersonExpeditions.UI
 {
     /// <summary>
-    /// Patches the combat encounter summary screen to display up to four members.
+    /// Extends the combat encounter summary to four members.
     /// Shows Strength and Dexterity XP gains after combat.
     /// </summary>
     [HarmonyPatch(typeof(EncounterCombatSummaryPanel), "OnShow")]
@@ -14,8 +14,7 @@ namespace FourPersonExpeditions.UI
         static void Prefix(EncounterCombatSummaryPanel __instance)
         {
             // Expand character slots from 2 to 4
-            // Note: EncounterCombatSummaryPanel doesn't have m_playerCharacters array,
-            // only characterSummaries list
+            // Unlike the return panel, this panel stores only characterSummaries.
             SummaryPanelExpander.ExpandCharacterSlots(
                 __instance,
                 summariesFieldName: "characterSummaries",
@@ -36,12 +35,9 @@ namespace FourPersonExpeditions.UI
                 return;
             }
 
-            // Add or get our logic component
             var logic = __instance.gameObject.GetComponent<CombatSummaryLogic>();
             if (logic == null) logic = __instance.gameObject.AddComponent<CombatSummaryLogic>();
 
-            // Initialize logic with the panel and the summary list
-            // This will handle showing only the first page and setting up arrows
             logic.Initialize(__instance, summaries);
         }
     }

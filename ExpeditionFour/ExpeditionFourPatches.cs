@@ -12,8 +12,7 @@ namespace FourPersonExpeditions
         [HarmonyPatch(typeof(ExpeditionMainPanelNew), "CalculateRouteDistance")]
         public static class CalculateRouteDistance_Patch
         {
-            // Using a Postfix is cleaner here since we just need to recalculate at the end.
-            // The transpiler approach would be overly complex for this simple use case.
+            // Recalculate after vanilla finishes so this patch can reuse its route state.
             public static void Postfix(ExpeditionMainPanelNew __instance)
             {
                 CorrectWaterRequirement(__instance);
@@ -38,7 +37,6 @@ namespace FourPersonExpeditions
                 return;
             }
 
-            // Re-implement the calculation logic:
             float dist = Safe.GetFieldOrDefault<float>(panel, "m_routeDistance", 0f);
             
             // Stasis Mode check
@@ -259,7 +257,7 @@ namespace FourPersonExpeditions
                     return true;
                 }
 
-                // Sync the vanilla indices to match our first 2 slots just in case vanilla code runs later
+                // Vanilla code still reads these two indices after the extended selector closes.
                 Safe.SetField(panel, "m_currentPerson1Index", logic.SelectedMemberIndices.Count > 0 ? logic.SelectedMemberIndices[0] : -1);
                 Safe.SetField(panel, "m_currentPerson2Index", logic.SelectedMemberIndices.Count > 1 ? logic.SelectedMemberIndices[1] : -1);
 

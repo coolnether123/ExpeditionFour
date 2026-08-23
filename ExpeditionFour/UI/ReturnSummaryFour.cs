@@ -5,15 +5,13 @@ using FourPersonExpeditions;
 namespace FourPersonExpeditions.UI
 {
     /// <summary>
-    /// Patches the expedition return summary screen to correctly display up to four members.
-    /// Refactored to use SummaryPanelExpander for DRY compliance.
+    /// Extends the expedition return summary to four members.
     /// </summary>
     [HarmonyPatch(typeof(ExplorationSummaryPanel), "OnShow")]
     internal static class ReturnSummaryFour
     {
         static void Prefix(ExplorationSummaryPanel __instance)
         {
-            // Delegate expansion logic to the reusable expander
             SummaryPanelExpander.ExpandCharacterSlots(
                 __instance,
                 summariesFieldName: "characterSummaries",

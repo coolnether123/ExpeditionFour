@@ -5,14 +5,13 @@ using System;
 namespace FourPersonExpeditions.SavePatches
 {
     /// <summary>
-    /// Overrides the vanilla AddMemberToParty logic to allow for more than two members in an expedition party.
-    /// This is crucial for both expedition initialization and when loading saves with larger parties.
+    /// Replaces the vanilla two-member limit with the configured party limit.
     /// </summary>
     [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.AddMemberToParty))]
     public static class AddMemberToParty_Prefix
     {
         /// <summary>
-        /// Intercepts the addition of a member to a party, enforcing the mod-defined maximum instead of the vanilla cap of two.
+        /// Adds a member when the party is below the configured limit.
         /// </summary>
         public static bool Prefix(ExplorationManager __instance, int partyId, ref PartyMember __result)
         {

@@ -1,8 +1,7 @@
 namespace FourPersonExpeditions
 {
     /// <summary>
-    /// Centralized repository for UI positioning and depth constants used throughout the four-person expedition mod.
-    /// This ensures consistent layouts across different screens and paging states.
+    /// Shared positions and depths for four-person expedition panels.
     /// </summary>
     public static class FourPersonUIPositions
     {

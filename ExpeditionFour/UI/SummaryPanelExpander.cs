@@ -7,16 +7,14 @@ using FourPersonExpeditions;
 namespace FourPersonExpeditions.UI
 {
     /// <summary>
-    /// Reusable utility for expanding summary panels from 2 to 4 character slots.
-    /// Follows Single Responsibility Principle - handles only panel expansion logic.
+    /// Expands vanilla two-character summary panels to four slots.
     /// </summary>
     public static class SummaryPanelExpander
     {
         private const int TARGET_SLOT_COUNT = 4;
 
         /// <summary>
-        /// Expands a summary panel's character slots from 2 to 4.
-        /// This should be called in a Harmony Prefix patch.
+        /// Adds summary slots before the vanilla panel renders them.
         /// </summary>
         /// <param name="panelInstance">The panel instance to expand</param>
         /// <param name="summariesFieldName">Name of the List&lt;EncounterSummaryCharacter&gt; field</param>
@@ -131,8 +129,7 @@ namespace FourPersonExpeditions.UI
         }
 
         /// <summary>
-        /// Applies a 2x2 grid layout for 3-4 member parties.
-        /// This should be called in a Harmony Postfix patch.
+        /// Applies a two-by-two layout after the vanilla panel renders its slots.
         /// </summary>
         /// <param name="panelInstance">The panel instance</param>
         /// <param name="memberCount">Number of active party members</param>
@@ -236,8 +233,7 @@ namespace FourPersonExpeditions.UI
     }
 
     /// <summary>
-    /// Configuration for summary panel layout.
-    /// Follows Open/Closed Principle - can be extended without modifying SummaryPanelExpander.
+    /// Coordinates for a summary panel's two-by-two layout.
     /// </summary>
     public class SummaryPanelLayout
     {
@@ -250,7 +246,7 @@ namespace FourPersonExpeditions.UI
         public int DepthIncrement { get; set; }
 
         /// <summary>
-        /// Default layout using positions from FourPersonUIPositions.
+        /// Creates the shared default layout.
         /// </summary>
         public static SummaryPanelLayout Default => new SummaryPanelLayout
         {
@@ -264,8 +260,7 @@ namespace FourPersonExpeditions.UI
         };
 
         /// <summary>
-        /// Calculates positions for a 2x2 grid layout.
-        /// Applies XOffset to all horizontal positions (matching original implementation).
+        /// Calculates the four grid positions, including the configured horizontal offset.
         /// </summary>
         public Vector3[] CalculatePositions(int memberCount)
         {

@@ -3,11 +3,10 @@ using UnityEngine;
 namespace FourPersonExpeditions
 {
     /// <summary>
-    /// Wraps local UI helpers for convenience.
+    /// UI helpers used only by the expedition setup panel.
     /// </summary>
     internal static class UICloneUtil
     {
-        // This method is CUSTOM to FPE (not in ModAPI) - KEEP IT
         public static ExpeditionPartySetup.MemberAvatar CloneAvatar(
             ExpeditionPartySetup.MemberAvatar src,
             Transform defaultParent = null)
@@ -15,7 +14,6 @@ namespace FourPersonExpeditions
             var dst = new ExpeditionPartySetup.MemberAvatar();
             if (src == null) return dst;
 
-            // Reuse UIHelper.Clone for GameObject cloning
             if (src.background != null)
             {
                 var go = UIHelper.Clone(src.background.gameObject, 
@@ -55,7 +53,6 @@ namespace FourPersonExpeditions
             return dst;
         }
 
-        // This method is CUSTOM to FPE - KEEP IT
         public static void OffsetAvatar(
             ExpeditionPartySetup.MemberAvatar avatar, 
             Vector3 targetLocalPosOfBackground, 
@@ -81,10 +78,8 @@ namespace FourPersonExpeditions
                     (reference?.name != null ? reference.name.transform.localPosition : Vector3.zero) + delta;
         }
 
-        // REPLACE with ModAPI's UIHelper.StripAnchors
         public static void StripAnchors(GameObject go) => UIHelper.StripAnchors(go);
 
-        // This method is CUSTOM to FPE - KEEP IT
         public static void SetAvatarActive(ExpeditionPartySetup.MemberAvatar avatar, bool active)
         {
             if (avatar == null) return;

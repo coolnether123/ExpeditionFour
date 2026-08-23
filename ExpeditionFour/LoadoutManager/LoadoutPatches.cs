@@ -4,13 +4,12 @@ using UnityEngine;
 using ModAPI.Reflection;
 using FourPersonExpeditions;
 
-// This single Prefix patch acts as a complete state machine for the OnExtra1 button.
+// Routes the continue button through route selection and each selected member's loadout.
 [HarmonyPatch(typeof(ExpeditionMainPanelNew), nameof(ExpeditionMainPanelNew.OnExtra1))]
 public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
 {
     /// <summary>
-    /// Intercepts the OnExtra1 button click to manage the transition between route selection and member loadouts.
-    /// This allows for multiple loadout screens to be shown sequentially for parties with more than two members.
+    /// Routes OnExtra1 from route selection through each selected member's loadout.
     /// </summary>
     public static bool Prefix(ExpeditionMainPanelNew __instance)
     {
@@ -26,7 +25,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
         bool loadoutScreenActive = __instance.LoadoutScreen != null && __instance.LoadoutScreen.activeInHierarchy;
         FPELog.Debug($"[FPE] OnExtra1 Prefix: Page={pageValue}, ActiveLoadoutIndex={logic.ActiveLoadoutIndex}, LoadoutScreen.active={loadoutScreenActive}");
 
-        // CRITICAL: Ensure characters are assigned to the correct PartyMember components before any loadout logic
+        // Loadout state reads PartyMember components rather than the selector's temporary indices.
         if (!AssignPeopleToPartyMembers(__instance, logic))
             return false;
 
@@ -93,8 +92,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
     }
 
     /// <summary>
-    /// Synchronizes the FamilyMember references from our selection logic into the actual PartyMember components.
-    /// This ensures that the loadout screen and final expedition registration see the correct characters.
+    /// Copies selected survivors into the PartyMember components used by loadout and registration code.
     /// </summary>
     private static bool AssignPeopleToPartyMembers(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic)
     {
@@ -132,13 +130,12 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
 
     /// <summary>
     /// Configures and displays the loadout screen for a specific party member slot.
-    /// Uses vanilla's DelayedPageChange system to ensure proper state transitions.
+    /// Uses the vanilla delayed page change so panel activation follows the game's normal order.
     /// </summary>
     private static void ShowLoadoutForSlot(ExpeditionMainPanelNew panel, FourPersonPartyLogic logic, int slot, bool isFirst)
     {
         FPELog.Debug($"[FPE] ShowLoadoutForSlot: slot={slot}, isFirst={isFirst}");
 
-        // Use the vanilla DelayedPageChange system to ensure proper timing
         System.Action pageAction = () =>
         {
             if (panel.LoadoutScreen == null || panel.PartySetup == null || panel.MapScreen == null)
@@ -192,7 +189,7 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
                 loadout.SetConfirmText(Localization.Get(hasAnother ? "UI.NextPerson" : "UI.SendParty"));
             }
 
-            // CRITICAL: Set the page AFTER activating screens and initializing loadout
+            // DelayedPageChange expects the target screen to be active and initialized first.
             Safe.SetField(panel, "m_page", 1); // LoadoutMember1
             FPELog.Debug($"[FPE] ShowLoadoutForSlot: Page set to 1 for slot {slot}");
         };
