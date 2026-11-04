@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
 using ModAPI.Reflection;
 using FourPersonExpeditions;
@@ -8,7 +7,7 @@ using FourPersonExpeditions;
 namespace FourPersonExpeditions.SavePatches
 {
     /// <summary>
-    /// Attempts to repair save files where characters are marked as "away" but are not assigned to any expedition party.
+    /// Reports save files where characters are marked as "away" but are not assigned to any expedition party.
     /// This can happen due to mod conflicts or unexpected game shutdowns.
     /// </summary>
     [HarmonyPatch(typeof(ExplorationManager), nameof(ExplorationManager.SaveLoad))]
@@ -53,42 +52,8 @@ namespace FourPersonExpeditions.SavePatches
                     // If a character is marked away but not found in any party's member list
                     if (fm != null && fm.isAway && !assignedCharacters.Contains(fm))
                     {
-                        ExplorationParty recipientParty = parties.Values
-                            .Where(p => p != null
-                                && p.membersCount < FourPersonConfig.MaxPartySize
-                                && p.state != ExplorationParty.ePartyState.None
-                                && p.state != ExplorationParty.ePartyState.Finished)
-                            .OrderByDescending(p => ExpeditionSaveStatePolicy.AwayStates.Contains(p.state))
-                            .ThenByDescending(p => p.membersCount)
-                            .ThenBy(p => p.id)
-                            .FirstOrDefault();
-
-                        if (recipientParty == null)
-                        {
-                            FPELog.Warn($"SaveRepair: No eligible party found for orphaned character '{fm.firstName}'.");
-                            continue;
-                        }
-
-                        int partyId = recipientParty.id;
-                        FPELog.Info($"SaveRepair: Character '{fm.firstName}' is orphaned. Attempting to re-attach to party #{partyId}.");
-                        
-                        PartyMember pm = null;
-                        try { pm = __instance.AddMemberToParty(partyId); }
-                        catch (Exception ex)
-                        {
-                            FPELog.Warn($"SaveRepair: Failed to add member structure to party #{partyId}: {ex.Message}");
-                        }
-
-                        if (pm != null)
-                        {
-                            pm.person = fm; 
-                            assignedCharacters.Add(fm);
-                            FPELog.Info($"SaveRepair: Successfully re-attached '{fm.firstName}' to party #{partyId}.");
-                        }
-                        else
-                        {
-                            FPELog.Warn($"SaveRepair: Could not re-attach '{fm.firstName}'. The target party might have reached the capacity limit.");
-                        }
+                        // Away flags do not identify the original party. Preserve the save rather than guess.
+                        FPELog.Warn($"SaveRepair: Leaving orphaned character '{fm.firstName}' unchanged because party ownership is unknown.");
                     }
                 }
             }

@@ -31,15 +31,27 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
         }
         
         // Temporarily store selection for validation
-        int oldSelection = logic.SelectedMemberIndices[activeSlot];
+        var oldSelections = new List<int>(logic.SelectedMemberIndices);
         logic.SelectedMemberIndices[activeSlot] = index;
+        if (index == -1)
+        {
+            for (int i = activeSlot + 1; i < logic.SelectedMemberIndices.Count; i++)
+                logic.SelectedMemberIndices[i] = -1;
+        }
 
         // Perform Validation Checks (Empty Shelter, Loyalty, Food Poisoning)
         if (ValidateSelection(__instance, logic))
         {
             // Validation failed, restore previous selection and stay on page
-            logic.SelectedMemberIndices[activeSlot] = oldSelection;
+            for (int i = 0; i < oldSelections.Count; i++)
+                logic.SelectedMemberIndices[i] = oldSelections[i];
             return false;
+        }
+
+        if (index == -1)
+        {
+            for (int i = activeSlot + 1; i < logic.HighlightedIndices.Count; i++)
+                logic.HighlightedIndices[i] = -1;
         }
 
         FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {activeSlot}, Character Index: {index}.");

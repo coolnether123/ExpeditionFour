@@ -4,8 +4,6 @@ namespace FourPersonExpeditions.SavePatches
 {
     /// <summary>
     /// States whose party members remain away from the shelter across a save.
-    /// Keep this list shared by flag synchronization and orphan repair so the
-    /// two load-time paths cannot disagree about an active expedition.
     /// </summary>
     internal static class ExpeditionSaveStatePolicy
     {
