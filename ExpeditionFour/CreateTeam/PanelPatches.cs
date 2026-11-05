@@ -54,6 +54,8 @@ public static class ExpeditionMainPanelNew_OnSelect_Patch
                 logic.HighlightedIndices[i] = -1;
         }
 
+        Safe.SetField(__instance, "m_routeIsDirty", true);
+
         FPELog.Debug($"OnSelect Patch: Stored selection. Slot: {activeSlot}, Character Index: {index}.");
 
         if (index != -1 && activeSlot < logic.MaxPartySize - 1)

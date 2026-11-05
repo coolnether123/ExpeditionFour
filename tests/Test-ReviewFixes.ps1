@@ -7,10 +7,18 @@ if ($start -lt 0 -or $end -le $start) { throw 'Selection transaction not found.'
 $transaction = $source.Substring($start, $end - $start).Replace('ValidateSelection(__instance, logic)', 'reject')
 Add-Type @"
 using System.Collections.Generic;
+public static class Safe {
+    public static void SetField(SelectionFixture panel, string name, bool value) {
+        if (name != "m_routeIsDirty") throw new System.Exception("Unexpected field");
+        panel.RouteIsDirty = value;
+    }
+}
 public class SelectionFixture {
+    public bool RouteIsDirty;
     public List<int> SelectedMemberIndices = new List<int>();
     public List<int> HighlightedIndices = new List<int>();
     public static bool Select(SelectionFixture logic, int activeSlot, int index, bool reject) {
+        var __instance = logic;
         $transaction
         return true;
     }
@@ -24,6 +32,7 @@ function Check-Selection($initial, $slot, $index, $reject, $expected, $highlight
     [void][SelectionFixture]::Select($fixture, $slot, $index, $reject)
     if (($fixture.SelectedMemberIndices -join ',') -ne ($expected -join ',')) { throw 'Incorrect selected members.' }
     if (($fixture.HighlightedIndices -join ',') -ne ($highlights -join ',')) { throw 'Incorrect highlights.' }
+    if ($fixture.RouteIsDirty -ne (-not $reject)) { throw 'Only accepted selections should invalidate route costs.' }
     $script:passed++
 }
 Check-Selection @(0,1,2,-1) 1 -1 $false @(0,-1,-1,-1) @(0,1,-1,-1)

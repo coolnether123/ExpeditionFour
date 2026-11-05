@@ -69,7 +69,7 @@ namespace FourPersonExpeditions
                 var vehicle = Safe.GetFieldOrDefault<Obj_CamperVan>(panel, "m_vehicle", null);
                 if (vehicle != null)
                 {
-                     petrol = Mathf.FloorToInt(dist / worldUnitsPerMile * vehicle.PetrolPerPersonPerMile * Mathf.Max(1, selectedCount));
+                     petrol = Mathf.FloorToInt(dist / worldUnitsPerMile * vehicle.PetrolPerPersonPerMile * (selectedCount <= 2 ? 1 : selectedCount));
                 }
             }
             Safe.SetField(panel, "m_petrolRequired", petrol);
@@ -306,6 +306,9 @@ namespace FourPersonExpeditions
                     __result = false;
                     return false;
                 }
+
+                // Refresh synchronously in case launch precedes the next panel Update.
+                Safe.InvokeMethod(panel, "CalculateRouteDistance");
 
                 if (ExplorationManager.Instance == null
                     || InventoryManager.Instance == null
