@@ -1,6 +1,6 @@
 # Four Person Expeditions
 
-Version 1.1.4 by Coolnether123.
+Version 1.1.5 by Coolnether123.
 
 Four Person Expeditions raises Sheltered's expedition limit from two survivors to four. It extends party setup, loadouts, resource calculations, combat, the expedition map, and summary screens to handle the extra members.
 
@@ -41,6 +41,20 @@ Before you disable or remove the mod, recall every expedition that has three or 
 ## Known issue
 
 Combatants can overlap slightly when a four-person party enters combat. The overlap is visual and does not change combat rules.
+
+## Build and checks
+
+From a Visual Studio developer shell, build against the installed game's Managed assemblies and the SMM 2.0 framework:
+
+```powershell
+msbuild ExpeditionFour/ExpeditionFour.csproj /t:Rebuild /p:Configuration=Release /p:ShelteredSmmRoot=A:\Dev\Worktrees\smm-integration\Dist\SMM /verbosity:minimal
+```
+
+The project locates the game's Managed folder, or accepts `/p:ShelteredManagedRoot=<path>`.
+Output is `ExpeditionFour/bin/Release/ExpeditionFour.dll`. This command does not install the mod.
+If MSBuild reports MSB4242, set `$env:MSBuildEnableWorkloadResolver = 'false'` in that shell and retry.
+
+Run each `tests/Test-*.ps1` in a separate PowerShell process. `Test-ControllerLoadout.ps1` accepts `-SmmRoot` and `-ManagedRoot` for alternate reference locations. It uses the real framework with a synthetic panel to check page conversion and selection dispatch. It does not run Unity input or transfer real items.
 
 ## License
 

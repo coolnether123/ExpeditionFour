@@ -190,7 +190,9 @@ public static class ExpeditionMainPanelNew_OnExtra1_StateMachine_Patch
             }
 
             // DelayedPageChange expects the target screen to be active and initialized first.
-            Safe.SetField(panel, "m_page", 1); // LoadoutMember1
+            // Safe.SetField requires the private enum type, otherwise controller input stays on the map page.
+            Safe.SetField(panel, "m_page", System.Enum.Parse(
+                AccessTools.Field(typeof(ExpeditionMainPanelNew), "m_page").FieldType, "LoadoutMember1"));
             FPELog.Debug($"[FPE] ShowLoadoutForSlot: Page set to 1 for slot {slot}");
         };
 
@@ -299,7 +301,8 @@ internal static class ExpeditionMainPanelNew_OnCancel_LoadoutPatch
                 }
             }
             loadout.SetConfirmText(Localization.Get(hasAnother ? "UI.NextPerson" : "UI.SendParty"));
-            Safe.SetField(panel, "m_page", 1);
+            Safe.SetField(panel, "m_page", System.Enum.Parse(
+                AccessTools.Field(typeof(ExpeditionMainPanelNew), "m_page").FieldType, "LoadoutMember1"));
         };
 
         Safe.InvokeMethod(panel, "DelayedPageChange", pageAction);
