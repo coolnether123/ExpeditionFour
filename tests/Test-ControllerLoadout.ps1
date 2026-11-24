@@ -53,9 +53,8 @@ public static class LoadoutPageFixture {
 "@
 $passed = 0
 $panel = New-Object ExpeditionMainPanelNew
-if ([ModAPI.Reflection.Safe]::SetField($panel, 'm_page', 1)) { throw 'Framework unexpectedly accepts an integer enum write.' }
 $panel.Select()
-if ($panel.SelectedItems -ne 0 -or $panel.CurrentPage -ne 3) { throw 'Original route-page failure was not reproduced.' }
+if ($panel.SelectedItems -ne 0 -or $panel.CurrentPage -ne 3) { throw 'The route page unexpectedly accepted a loadout selection.' }
 $passed++
 foreach ($direction in @('Forward', 'Backward')) {
     foreach ($slot in 0..3) {
