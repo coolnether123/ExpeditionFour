@@ -1,6 +1,6 @@
 # Four Person Expeditions
 
-Version 1.1.5 by Coolnether123.
+Version 1.2.0 by Coolnether123.
 
 Four Person Expeditions raises Sheltered's expedition limit from two survivors to four. It extends party setup, loadouts, resource calculations, combat, the expedition map, and summary screens to handle the extra members.
 

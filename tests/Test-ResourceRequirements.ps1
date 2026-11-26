@@ -5,6 +5,9 @@ $start = $source.IndexOf('            int selectedCount =')
 $end = $source.IndexOf('            // Update UI Labels', $start)
 if ($start -lt 0 -or $end -le $start) { throw 'Resource calculation not found.' }
 $calculation = $source.Substring($start, $end - $start)
+$formatStart = $source.IndexOf('        private static string FormatSupplyTotal(')
+$formatEnd = $source.IndexOf('        internal static bool HasSufficientLaunchResources(', $formatStart)
+$formatter = $source.Substring($formatStart, $formatEnd - $formatStart)
 Add-Type @"
 using System;
 using System.Linq;
@@ -18,12 +21,20 @@ public class ExplorationManager {
 }
 public static class FpeRuntimeGuards { public static bool Stasis; public static bool IsStasisMode() { return Stasis; } }
 public static class FPELog { public static void Warn(string text) {} }
-public static class Mathf { public const float Epsilon = float.Epsilon; public static int FloorToInt(float value) { return (int)Math.Floor(value); } }
+public static class Mathf {
+    public const float Epsilon = float.Epsilon;
+    public static int FloorToInt(float value) { return (int)Math.Floor(value); }
+    public static float Ceil(float value) { return (float)Math.Ceiling(value); }
+}
 public static class Safe {
     public static T GetFieldOrDefault<T>(Panel panel, string name, T fallback) { return (T)typeof(Panel).GetField(name).GetValue(panel); }
     public static void SetField(Panel panel, string name, object value) { typeof(Panel).GetField(name).SetValue(panel, value); }
 }
 public static class ResourceFixture {
+    $formatter
+    public static string Format(float amount, float available, float shortage, string supply) {
+        return FormatSupplyTotal(amount, available, shortage, supply);
+    }
     public static void Calculate(Panel panel, Logic logic) {
         $calculation
     }
@@ -55,4 +66,16 @@ $launch = $source.Substring($source.IndexOf('public static class FinaliseExpedit
 $refresh = $launch.IndexOf('Safe.InvokeMethod(panel, "CalculateRouteDistance")')
 if ($refresh -lt 0 -or $refresh -gt $launch.IndexOf('!HasSufficientLaunchResources(panel)')) { throw 'Launch must refresh costs before checking resources.' }
 $passed++
-Write-Output "PASS: $passed checks, 0 failed. Production resource calculation with fixture managers, plus selection and launch wiring contracts."
+foreach ($case in @(
+    @{ Amount = 12; Available = 9; Shortage = 3; Supply = 'water'; Expected = '12/9  Need 3 more water' }
+    @{ Amount = 5; Available = 3; Shortage = 2; Supply = 'petrol'; Expected = '5/3  Need 2 more petrol' }
+    @{ Amount = 0; Available = 8; Shortage = 0.25; Supply = 'battery'; Expected = '0/8  Need 1 more battery' }
+    @{ Amount = 9; Available = 9; Shortage = 0; Supply = 'water'; Expected = '9/9' }
+    @{ Amount = 4; Available = 8; Shortage = -4; Supply = 'petrol'; Expected = '4/8' }
+    @{ Amount = 2; Available = 8; Shortage = -2; Supply = 'battery'; Expected = '2/8' }
+)) {
+    $actual = [ResourceFixture]::Format($case.Amount, $case.Available, $case.Shortage, $case.Supply)
+    if ($actual -cne $case.Expected) { throw "Incorrect supply total: expected '$($case.Expected)', got '$actual'." }
+    $passed++
+}
+Write-Output "PASS: $passed checks, 0 failed. Production resource calculation and shortage text with fixture managers, plus selection and launch wiring contracts."

@@ -85,9 +85,9 @@ namespace FourPersonExpeditions
                     : 0;
 
                 if (panel.waterRequiredLabel != null && waterManager != null)
-                    panel.waterRequiredLabel.text = Mathf.Ceil(finalReq).ToString("N0") + "/" + storedWater.ToString("N0");
+                    panel.waterRequiredLabel.text = FormatSupplyTotal(Mathf.Ceil(finalReq), storedWater, finalReq - storedWater, "water");
                 if (panel.petrolRequiredLabel != null && inventoryManager != null)
-                    panel.petrolRequiredLabel.text = Mathf.Ceil((float)petrol).ToString("N0") + "/" + storedPetrol.ToString("N0");
+                    panel.petrolRequiredLabel.text = FormatSupplyTotal(petrol, storedPetrol, petrol - storedPetrol, "petrol");
 
                 ApplyWaterWarningState(panel, waterManager == null || finalReq > storedWater);
                 ApplyPetrolWarningState(panel, inventoryManager == null || petrol > storedPetrol);
@@ -145,13 +145,21 @@ namespace FourPersonExpeditions
                     
                     // Update UI label
                     if (panel.waterRequiredLabel != null)
-                        panel.waterRequiredLabel.text = remaining.ToString("N0") + "/" + combinedBattery.ToString("N0");
+                        panel.waterRequiredLabel.text = FormatSupplyTotal(remaining, combinedBattery, finalReq - combinedBattery, "battery");
                     
                     // Update sufficiency flag
                     Safe.SetField(panel, "m_sufficientBatteryForTrip", combinedBattery >= finalReq);
                     ApplyWaterWarningState(panel, finalReq > combinedBattery);
                 }
             }
+        }
+
+        private static string FormatSupplyTotal(float displayedAmount, float available, float shortage, string supply)
+        {
+            string total = string.Format("{0:N0}/{1:N0}", displayedAmount, available);
+            return shortage > 0f
+                ? string.Format("{0}  Need {1:N0} more {2}", total, Mathf.Ceil(shortage), supply)
+                : total;
         }
 
         internal static bool HasSufficientLaunchResources(ExpeditionMainPanelNew panel)
