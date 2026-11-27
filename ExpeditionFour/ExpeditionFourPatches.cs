@@ -85,9 +85,9 @@ namespace FourPersonExpeditions
                     : 0;
 
                 if (panel.waterRequiredLabel != null && waterManager != null)
-                    panel.waterRequiredLabel.text = FormatSupplyTotal(Mathf.Ceil(finalReq), storedWater, finalReq - storedWater, "water");
+                    SetSupplyLabel(panel, panel.waterRequiredLabel, FormatSupplyTotal(Mathf.Ceil(finalReq), storedWater, finalReq - storedWater, "water"));
                 if (panel.petrolRequiredLabel != null && inventoryManager != null)
-                    panel.petrolRequiredLabel.text = FormatSupplyTotal(petrol, storedPetrol, petrol - storedPetrol, "petrol");
+                    SetSupplyLabel(panel, panel.petrolRequiredLabel, FormatSupplyTotal(petrol, storedPetrol, petrol - storedPetrol, "petrol"));
 
                 ApplyWaterWarningState(panel, waterManager == null || finalReq > storedWater);
                 ApplyPetrolWarningState(panel, inventoryManager == null || petrol > storedPetrol);
@@ -145,13 +145,57 @@ namespace FourPersonExpeditions
                     
                     // Update UI label
                     if (panel.waterRequiredLabel != null)
-                        panel.waterRequiredLabel.text = FormatSupplyTotal(remaining, combinedBattery, finalReq - combinedBattery, "battery");
+                        SetSupplyLabel(panel, panel.waterRequiredLabel, FormatSupplyTotal(remaining, combinedBattery, finalReq - combinedBattery, "battery"));
                     
                     // Update sufficiency flag
                     Safe.SetField(panel, "m_sufficientBatteryForTrip", combinedBattery >= finalReq);
                     ApplyWaterWarningState(panel, finalReq > combinedBattery);
                 }
             }
+        }
+
+        private static void SetSupplyLabel(ExpeditionMainPanelNew panel, UILabel label, string text)
+        {
+            var map = panel.MapScreen != null ? panel.MapScreen.GetComponent<UI_ExpeditionMap>() : null;
+            if (map != null && map.mapTargetTexture != null)
+            {
+                Transform origin = label.transform;
+                Vector3[] mapCorners = map.mapTargetTexture.worldCorners;
+                float mapLeft = Mathf.Min(origin.InverseTransformPoint(mapCorners[0]).x,
+                    origin.InverseTransformPoint(mapCorners[1]).x);
+
+                // Use the back button's left edge as the sidebar inset. The map
+                // texture starts inside its frame, so keep a gutter on that side too.
+                float left = -mapLeft * 0.6f;
+                if (panel.backButton != null)
+                {
+                    float buttonLeft = NGUIMath.CalculateRelativeWidgetBounds(origin, panel.backButton.transform, true).min.x;
+                    if (buttonLeft < 0f)
+                        left = Mathf.Max(left, buttonLeft);
+                }
+
+                int width = CalculateSupplyLabelWidth(left, mapLeft, label.pivotOffset.x);
+                if (width > 0)
+                {
+                    label.overflowMethod = UILabel.Overflow.ShrinkContent;
+                    label.maxLineCount = 0;
+                    label.width = width;
+                }
+            }
+
+            label.text = text;
+        }
+
+        private static int CalculateSupplyLabelWidth(float left, float mapLeft, float pivot)
+        {
+            const float gap = 4f;
+            float right = mapLeft * 0.6f;
+            float width = right - left - 2f * gap;
+            if (pivot > 0f)
+                width = Mathf.Min(width, (-left - gap) / pivot);
+            if (pivot < 1f)
+                width = Mathf.Min(width, (right - gap) / (1f - pivot));
+            return Mathf.FloorToInt(width);
         }
 
         private static string FormatSupplyTotal(float displayedAmount, float available, float shortage, string supply)

@@ -6,6 +6,8 @@ $end = $source.IndexOf('            // Update UI Labels', $start)
 if ($start -lt 0 -or $end -le $start) { throw 'Resource calculation not found.' }
 $calculation = $source.Substring($start, $end - $start)
 $formatStart = $source.IndexOf('        private static string FormatSupplyTotal(')
+$layoutStart = $source.IndexOf('        private static int CalculateSupplyLabelWidth(')
+$layout = $source.Substring($layoutStart, $formatStart - $layoutStart)
 $formatEnd = $source.IndexOf('        internal static bool HasSufficientLaunchResources(', $formatStart)
 $formatter = $source.Substring($formatStart, $formatEnd - $formatStart)
 Add-Type @"
@@ -23,6 +25,7 @@ public static class FpeRuntimeGuards { public static bool Stasis; public static 
 public static class FPELog { public static void Warn(string text) {} }
 public static class Mathf {
     public const float Epsilon = float.Epsilon;
+    public static float Min(float a, float b) { return Math.Min(a, b); }
     public static int FloorToInt(float value) { return (int)Math.Floor(value); }
     public static float Ceil(float value) { return (float)Math.Ceiling(value); }
 }
@@ -32,6 +35,10 @@ public static class Safe {
 }
 public static class ResourceFixture {
     $formatter
+    $layout
+    public static int SidebarWidth(float left, float mapLeft) {
+        return CalculateSupplyLabelWidth(left, mapLeft, 0.5f);
+    }
     public static string Format(float amount, float available, float shortage, string supply) {
         return FormatSupplyTotal(amount, available, shortage, supply);
     }
@@ -77,5 +84,28 @@ foreach ($case in @(
     $actual = [ResourceFixture]::Format($case.Amount, $case.Available, $case.Shortage, $case.Supply)
     if ($actual -cne $case.Expected) { throw "Incorrect supply total: expected '$($case.Expected)', got '$actual'." }
     $passed++
+}
+# Scale the photographed map geometry with height and center it for both aspect ratios.
+foreach ($height in @(720,900,1080,1440)) {
+    foreach ($aspectHeight in @(9,10)) {
+        $width = [int]($height * 16 / $aspectHeight)
+        $scale = $height / 900.0
+        $offset = ($width - 1600 * $scale) / 2.0
+        $center = $offset + 386 * $scale
+        $sidebarLeft = $offset + 322 * $scale
+        $mapLeft = $offset + 512 * $scale
+        $instructionsLeft = $offset + 520 * $scale
+        $labelWidth = [ResourceFixture]::SidebarWidth($sidebarLeft - $center, $mapLeft - $center)
+        $label = @{ Left = $center - $labelWidth / 2.0; Right = $center + $labelWidth / 2.0
+                    Top = 222 * $scale; Bottom = 254 * $scale }
+        $instructions = @{ Left = $instructionsLeft; Right = $offset + 1050 * $scale
+                           Top = 198 * $scale; Bottom = 284 * $scale }
+        $intersects = $label.Left -lt $instructions.Right -and $label.Right -gt $instructions.Left -and
+                      $label.Top -lt $instructions.Bottom -and $label.Bottom -gt $instructions.Top
+        if ($labelWidth -le 0 -or $label.Left -le $sidebarLeft -or $label.Right -ge $mapLeft -or $intersects) {
+            throw "Supply label exceeds its sidebar at ${width}x${height}."
+        }
+        $passed++
+    }
 }
 Write-Output "PASS: $passed checks, 0 failed. Production resource calculation and shortage text with fixture managers, plus selection and launch wiring contracts."
